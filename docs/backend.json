@@ -80,9 +80,6 @@
       "required": [
         "id",
         "fullName",
-        "locationLatitude",
-        "locationLongitude",
-        "address",
         "userAccountId"
       ]
     },
@@ -138,7 +135,6 @@
       },
       "required": [
         "id",
-        "governmentIdUrl",
         "availability",
         "status",
         "skillCategoryIds",

@@ -1,14 +1,4 @@
 // This file is now primarily for type definitions, as data will come from Firestore.
-
-export type Worker = {
-    id: string;
-    name: string;
-    location: string;
-    skills: string[];
-    rating: number;
-    avatar: string;
-    verified: boolean;
-};
   
 export type Job = {
     id: string;
@@ -27,13 +17,6 @@ export type User = {
     role: 'worker' | 'customer' | 'admin';
     status: 'active' | 'pending_verification' | 'rejected';
 }
-  
-export const workers: Worker[] = [
-    { id: '1', name: 'John Doe', location: 'New York, NY', skills: ['Plumbing', 'Electrical'], rating: 4.8, avatar: 'https://picsum.photos/seed/avatar1/200/200', verified: true },
-    { id: '2', name: 'Jane Smith', location: 'Los Angeles, CA', skills: ['Carpentry', 'Painting'], rating: 4.9, avatar: 'https://picsum.photos/seed/avatar2/200/200', verified: true },
-    { id: '3', name: 'Mike Johnson', location: 'Chicago, IL', skills: ['Gardening', 'Landscaping'], rating: 4.7, avatar: 'https://picsum.photos/seed/avatar3/200/200', verified: true },
-    { id: '4', name: 'Emily Brown', location: 'Houston, TX', skills: ['Cleaning', 'Housekeeping'], rating: 5.0, avatar: 'https://picsum.photos/seed/avatar4/200/200', verified: true },
-];
 
 export const jobs: Job[] = [
     { id: 'j1', title: 'Fix Leaky Faucet', customer: 'Alice Williams', location: 'New York, NY', budget: 150, status: 'Open', skills: ['Plumbing'] },

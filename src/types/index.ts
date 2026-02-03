@@ -30,7 +30,7 @@ export interface WorkerProfile {
 }
 
 export interface CustomerProfile {
-    id: string;
+    id:string;
     isVerified: boolean;
     userProfileId: string;
     userAccountId: string; // Denormalized for rules
@@ -40,3 +40,14 @@ export interface SkillCategory {
     id: string;
     name: string;
 }
+
+export type DisplayWorker = {
+    id: string; // user id
+    name: string;
+    location?: string;
+    skills: string[];
+    rating: number; // Placeholder for now
+    avatar?: string;
+    verified: boolean; // Should always be true here
+    distance: number | null;
+};
