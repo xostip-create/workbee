@@ -317,6 +317,14 @@
           "type": "string",
           "description": "Unique identifier for the job, typically matching the accepted proposal message ID."
         },
+        "jobPostingId": {
+          "type": "string",
+          "description": "Optional reference to the JobPosting this job originated from."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the job."
+        },
         "customerId": {
           "type": "string",
           "description": "The user ID of the customer who is paying for the job."
@@ -374,12 +382,118 @@
       },
       "required": [
         "id",
+        "title",
         "customerId",
         "workerId",
         "conversationId",
         "price",
         "serviceFee",
         "totalAmount",
+        "status",
+        "createdAt"
+      ]
+    },
+    "JobPosting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JobPosting",
+      "type": "object",
+      "description": "Represents a job or errand posted by a customer, available for workers to apply.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "customerId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "skillCategoryIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "locationLatitude": {
+          "type": "number"
+        },
+        "locationLongitude": {
+          "type": "number"
+        },
+        "address": {
+          "type": "string"
+        },
+        "jobType": {
+          "type": "string",
+          "enum": [
+            "one-time",
+            "recurring",
+            "errand"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "assigned",
+            "completed",
+            "cancelled"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "customerId",
+        "title",
+        "description",
+        "skillCategoryIds",
+        "status",
+        "createdAt"
+      ]
+    },
+    "JobApplication": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JobApplication",
+      "type": "object",
+      "description": "Represents a worker's application for a specific job posting.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "jobPostingId": {
+          "type": "string"
+        },
+        "workerId": {
+          "type": "string"
+        },
+        "customerId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "accepted",
+            "rejected"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "jobPostingId",
+        "workerId",
+        "customerId",
         "status",
         "createdAt"
       ]
@@ -540,8 +654,30 @@
             }
           ]
         }
+      },
+      {
+        "path": "/jobPostings/{jobPostingId}",
+        "definition": {
+          "entityName": "JobPosting",
+          "schema": {
+            "$ref": "#/backend/entities/JobPosting"
+          },
+          "description": "Stores all job postings created by customers."
+        }
+      },
+      {
+        "path": "/jobPostings/{jobPostingId}/applications/{applicationId}",
+        "definition": {
+          "entityName": "JobApplication",
+          "schema": {
+            "$ref": "#/backend/entities/JobApplication"
+          },
+          "description": "Stores all applications submitted by workers for a job posting."
+        }
       }
     ],
     "reasoning": "This Firestore structure is designed to support E&F WorkBee's user account system, role-based access control, and onboarding processes while adhering to the principles of Authorization Independence, Structural Segregation, and Access Modeling. It prioritizes security, scalability, and debuggability.\n\n**Authorization Independence:**\n\n*   **`userAccounts`**: Each `UserAccount` document contains a `userProfileId`, establishing a 1:1 relationship with the `userProfiles` collection. The `role` field is stored directly within the `UserAccount` document, enabling role-based access control without requiring `get()` calls to other collections.\n*   **`workerProfiles`**: `WorkerProfile` documents include the `userProfileId` to link to common profile data, and maintain their approval `status`. No `get()` calls are required to determine a Worker's approval status and permissions.  The `skillCategoryIds` array within the `WorkerProfile` allows direct association with skill categories, and can be used for filtering/matching.\n*   **`customerProfiles`**: Similarly, `CustomerProfile` documents store `isVerified` status, making it immediately accessible without external lookups.\n\n**Structural Segregation:**\n\n*   **Separate Collections for Roles**: The structure uses distinct collections (`userAccounts`, `userProfiles`, `workerProfiles`, `customerProfiles`) to segregate data based on its security posture and access requirements. This prevents mixing data with differing access needs within the same collection.\n*   **Admin Approval**: The `/roles_admin/{uid}` collection is used for managing admin roles. The existence of a document in this collection grants admin privileges. This approach avoids embedding role information within user documents, simplifying rules and improving security.\n\n**Access Modeling:**\n\n*   **Path-Based Ownership**: The primary access control mechanism is path-based ownership, especially within the `userAccounts` collection. Security rules can easily verify if `request.auth.uid` matches the `{userId}` in the path.\n*   **DBAC (Database-Based Access Control)**: The `roles_admin` collection implements DBAC, with role assignment determined by the presence of a document keyed by the user's UID. This approach avoids the complexity and potential security risks of custom claims.\n\n**QAPs (Rules are not Filters):**\n\nThe structural segregation supports secure `list` operations (QAPs). Admins can `list` all `workerProfiles` to review applications. Customers can `list` `workerProfiles` that are `Approved` and match certain skills, because the necessary authorization and filter criteria are present without requiring complex `get()` calls.  The separation of user profiles into distinct collections based on role allows for tailored listing permissions.\n\nThis design facilitates simple, robust, and easily debuggable security rules. The denormalization strategy eliminates the need for `get()` calls in security rules, improving performance and preventing cascading failures. The segregation of data based on role simplifies rule definitions and enhances security. The explicit state modeling and predictable schema improve data clarity and maintainability."
   }
 }
+
+    

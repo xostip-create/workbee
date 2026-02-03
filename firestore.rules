@@ -18,6 +18,7 @@
  * - /conversations: Metadata for chat conversations.
  * - /conversations/{conversationId}/messages: Messages within a conversation.
  * - /jobs: Job data created from accepted proposals.
+ * - /jobPostings: Public job listings from customers.
  *
  * Key Security Decisions:
  * - Admin Access: A user is considered an 'Admin' if a document with their UID
@@ -28,6 +29,7 @@
  * - Public vs. Private Data: Worker profiles are publicly readable to allow customers
  *   to browse available services, but all write operations are strictly controlled by
  *   the profile owner or an admin. Skill categories are also public.
+ * - Job Visibility: Job postings are only visible to approved workers.
  * - Immutable Ownership: Once a profile document is created and linked to a user
  *   account (e.g., via a 'userAccountId' field), that link cannot be changed. This
  *   prevents documents from being maliciously reassigned to other users.
@@ -96,6 +98,16 @@ service cloud.firestore {
      */
     function isImmutable(fieldName) {
       return request.resource.data[fieldName] == resource.data[fieldName];
+    }
+    
+    /**
+     * Returns true if the requesting user has an 'Approved' worker profile.
+     * Requires a 'get' call, so should be used judiciously.
+     */
+    function isApprovedWorker() {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/workerProfiles/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/workerProfiles/$(request.auth.uid)).data.status == 'Approved';
     }
 
 
@@ -235,15 +247,12 @@ service cloud.firestore {
      * @path /jobs/{jobId}
      * @allow (get) Any participant in the job (customer or worker) or an admin.
      * @allow (create) The customer of the job.
-     * @allow (update) The customer of the job, for state transitions like payment.
+     * @allow (update) Any participant in the job, for state transitions like payment or completion.
      * @principle Secures job data to only involved parties.
      */
     match /jobs/{jobId} {
       function isJobParticipant() {
         return isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.workerId);
-      }
-      function isJobCustomer() {
-        return isSignedIn() && request.auth.uid == resource.data.customerId;
       }
 
       allow get: if isJobParticipant() || isAdmin();
@@ -252,12 +261,50 @@ service cloud.firestore {
       // Only the customer can create a job from a proposal, and they must be the customer in the new doc
       allow create: if isOwner(request.resource.data.customerId);
 
-      // Customer can update status (e.g. after paying or completing). Admins can edit anything.
+      // Customer or Worker can update status. Admins can edit anything.
       allow update: if isExistingDoc() && (
-        (isJobCustomer() && isImmutable('customerId') && isImmutable('workerId')) || isAdmin()
+        (isJobParticipant() && isImmutable('customerId') && isImmutable('workerId')) || isAdmin()
       );
       allow delete: if isAdmin();
     }
 
+    /**
+     * @description Public job postings by customers.
+     * @path /jobPostings/{jobPostingId}
+     * @allow (read) Approved workers, the owner, or an admin.
+     * @allow (list) Approved workers or admins.
+     * @allow (create) Authenticated users creating a post for themselves.
+     * @principle Controls visibility of job postings and who can create them.
+     */
+    match /jobPostings/{jobPostingId} {
+      allow get: if isApprovedWorker() || isOwner(resource.data.customerId) || isAdmin();
+      allow list: if isApprovedWorker() || isAdmin();
+      allow create: if isOwner(request.resource.data.customerId);
+      allow update: if isOwner(resource.data.customerId) || isAdmin();
+      allow delete: if isOwner(resource.data.customerId) || isAdmin();
+    }
+
+    /**
+     * @description Worker applications for job postings.
+     * @path /jobPostings/{jobPostingId}/applications/{applicationId}
+     * @allow (read) The job poster or the applicant.
+     * @allow (create) An approved worker applying for themselves.
+     * @allow (update) The job poster (to accept/reject).
+     * @principle Secures the application process.
+     */
+    match /jobPostings/{jobPostingId}/applications/{applicationId} {
+      function jobPosterId() { 
+        return get(/databases/$(database)/documents/jobPostings/$(jobPostingId)).data.customerId;
+      }
+      
+      allow read: if isOwner(jobPosterId()) || isOwner(resource.data.workerId) || isAdmin();
+      allow list: if isOwner(jobPosterId()) || isApprovedWorker();
+      allow create: if isApprovedWorker() && isOwner(request.resource.data.workerId);
+      allow update: if isOwner(jobPosterId()) || isAdmin();
+      allow delete: if false;
+    }
+
   }
 }
+
+    

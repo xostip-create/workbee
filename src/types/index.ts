@@ -79,6 +79,8 @@ export interface ChatMessage {
 
 export interface Job {
     id: string;
+    jobPostingId?: string;
+    title: string;
     customerId: string;
     workerId: string;
     conversationId: string;
@@ -91,3 +93,28 @@ export interface Job {
     paidAt?: string; // ISO
     completedAt?: string; // ISO
 }
+
+export interface JobPosting {
+    id: string;
+    customerId: string;
+    title: string;
+    description: string;
+    skillCategoryIds: string[];
+    locationLatitude?: number;
+    locationLongitude?: number;
+    address?: string;
+    jobType: 'one-time' | 'recurring' | 'errand';
+    status: 'open' | 'assigned' | 'completed' | 'cancelled';
+    createdAt: string; // ISO date string
+}
+
+export interface JobApplication {
+    id: string;
+    jobPostingId: string;
+    workerId: string;
+    customerId: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: string; // ISO date string
+}
+
+    
