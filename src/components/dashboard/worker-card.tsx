@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +38,7 @@ export function WorkerCard({ worker }: WorkerCardProps) {
         <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span>{worker.rating.toFixed(1)}</span>
+                <span>{(worker.rating || 0).toFixed(1)}</span>
             </div>
             {worker.distance !== null && (
                 <div className="flex items-center gap-1">
@@ -48,7 +49,9 @@ export function WorkerCard({ worker }: WorkerCardProps) {
         </div>
       </CardContent>
       <CardFooter className="flex justify-center gap-2">
-        <Button className="flex-1" size="sm">View Profile</Button>
+        <Button asChild className="flex-1" size="sm">
+            <Link href={`/profile/${worker.id}`}>View Profile</Link>
+        </Button>
         <Button variant="outline" className="flex-1" size="sm">Contact</Button>
       </CardFooter>
     </Card>

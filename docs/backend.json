@@ -75,6 +75,10 @@
         "userAccountId": {
           "type": "string",
           "description": "Reference to UserAccount. (Relationship: UserAccount 1:1 UserProfile)"
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short bio about the user."
         }
       },
       "required": [
@@ -131,6 +135,18 @@
         "userProfileId": {
           "type": "string",
           "description": "Reference to UserProfile. (Relationship: WorkerProfile 1:1 UserProfile)"
+        },
+        "averageRating": {
+          "type": "number",
+          "description": "The worker's average rating."
+        },
+        "reviewsCount": {
+          "type": "number",
+          "description": "The total number of reviews the worker has received."
+        },
+        "completedJobsCount": {
+          "type": "number",
+          "description": "The total number of jobs completed by the worker."
         }
       },
       "required": [
@@ -158,6 +174,14 @@
         "userProfileId": {
           "type": "string",
           "description": "Reference to UserProfile. (Relationship: CustomerProfile 1:1 UserProfile)"
+        },
+        "averageRating": {
+          "type": "number",
+          "description": "The customer's average rating."
+        },
+        "reviewsCount": {
+          "type": "number",
+          "description": "The total number of reviews the customer has received."
         }
       },
       "required": [

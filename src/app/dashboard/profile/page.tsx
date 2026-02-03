@@ -49,6 +49,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (userProfile) {
       form.setValue('fullName', userProfile.fullName);
+      form.setValue('bio', userProfile.bio);
     }
     if (workerProfile) {
         // Assuming skillCategoryIds is an array of IDs, we'll join them.
@@ -93,7 +94,7 @@ export default function ProfilePage() {
 
     // Update UserProfile
     if (userProfileRef) {
-        updateDocumentNonBlocking(userProfileRef, { fullName: values.fullName });
+        updateDocumentNonBlocking(userProfileRef, { fullName: values.fullName, bio: values.bio });
     }
 
     // Update WorkerProfile if it exists
@@ -101,7 +102,6 @@ export default function ProfilePage() {
         updateDocumentNonBlocking(workerProfileRef, {
             skillCategoryIds: values.skills?.split(',').map(s => s.trim()).filter(Boolean) || [],
             availability: values.availability,
-            // 'bio' is not in the model, so we can't save it directly yet.
         });
     }
 

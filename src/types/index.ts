@@ -14,6 +14,7 @@ export interface UserProfile {
     locationLongitude?: number;
     address?: string;
     userAccountId: string;
+    bio?: string;
 }
 
 export interface WorkerProfile {
@@ -27,6 +28,9 @@ export interface WorkerProfile {
     skillCategoryIds: string[];
     userProfileId: string;
     userAccountId: string; // Denormalized for rules
+    averageRating?: number;
+    reviewsCount?: number;
+    completedJobsCount?: number;
 }
 
 export interface CustomerProfile {
@@ -34,6 +38,8 @@ export interface CustomerProfile {
     isVerified: boolean;
     userProfileId: string;
     userAccountId: string; // Denormalized for rules
+    averageRating?: number;
+    reviewsCount?: number;
 }
 
 export interface SkillCategory {
