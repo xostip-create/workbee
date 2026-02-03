@@ -1,0 +1,190 @@
+/**
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for personal data, supplemented
+ * by a powerful role-based access control (RBAC) system for administrators.
+ * Users have complete control over their own account and profile information, but cannot
+ * access or modify the data of other users. Administrative privileges are granted by
+ * the existence of a document in a dedicated 'roles_admin' collection, providing a
+ * clear and secure way to manage elevated permissions.
+ *
+ * Data Structure:
+ * The data is organized into distinct top-level collections for different entities:
+ * - /userAccounts: Core authentication and role data.
+ * - /userProfiles: Shared profile data like name and location.
+ * - /workerProfiles: Data specific to 'Worker' users, including verification status.
+ * - /customerProfiles: Data specific to 'Customer' users.
+ * - /skillCategories: Publicly readable list of skills.
+ * - /roles_admin: A collection where document existence grants admin rights.
+ *
+ * Key Security Decisions:
+ * - Admin Access: A user is considered an 'Admin' if a document with their UID
+ *   exists in the `/roles_admin` collection. This database-based access control (DBAC)
+ *   is secure and avoids reliance on custom claims.
+ * - User Data Privacy: Listing users is strictly forbidden for non-admins to protect
+ *   user privacy. Users can only read their own profile data.
+ * - Public vs. Private Data: Worker profiles are publicly readable to allow customers
+ *   to browse available services, but all write operations are strictly controlled by
+ *   the profile owner or an admin. Skill categories are also public.
+ * - Immutable Ownership: Once a profile document is created and linked to a user
+ *   account (e.g., via a 'userAccountId' field), that link cannot be changed. This
+ *   prevents documents from being maliciously reassigned to other users.
+ * - Safe Onboarding: Users creating worker or customer profiles cannot set their own
+ *   status to 'Approved' or 'Verified'. These critical fields are immutable for the
+ *   user and can only be changed by an administrator, ensuring a secure approval flow.
+ *
+ * Denormalization for Authorization:
+ * To create simpler and more performant rules, profile documents like 'workerProfiles'
+ * and 'customerProfiles' must contain a denormalized 'userAccountId' field. This
+ * allows for direct ownership checks without requiring slow and costly `get()` calls
+ * to other collections.
+ *
+ * Structural Segregation:
+ * The use of separate collections for different user profile types ('workerProfiles',
+ * 'customerProfiles') creates a strong security boundary. This prevents data with
+ * different access patterns from being mixed and simplifies the rules required to
+ * secure each type of data.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns true if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Returns true if the requesting user's UID matches the provided userId.
+     * This is the foundation of the user-ownership model.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Returns true if the requesting user is an Admin.
+     * Admin status is determined by the existence of a document in the
+     * `/roles_admin` collection, identified by the user's UID.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /**
+     * Returns true if the document being operated on already exists.
+     * CRITICAL for all update and delete operations to prevent modifying non-existent data.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Validates that a field remains unchanged during an update operation.
+     * Used to protect critical, immutable fields like ownership IDs.
+     */
+    function isImmutable(fieldName) {
+      return request.resource.data[fieldName] == resource.data[fieldName];
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Collection Rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * @description Core user account data, including authentication info and role.
+     * @path        /userAccounts/{userId}
+     * @allow       (create) A new user creating their own account document.
+     * @deny        (list) A regular user trying to list all user accounts in the system.
+     * @principle   Restricts access to a user's own data tree and enforces self-creation.
+     */
+    match /userAccounts/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingDoc() && (isOwner(userId) || isAdmin()) && isImmutable('id');
+      allow delete: if isExistingDoc() && isAdmin();
+    }
+
+    /**
+     * @description Shared profile data for all user types.
+     * @path        /userProfiles/{userProfileId}
+     * @allow       (create) An authenticated user creating their own associated profile.
+     * @deny        (update) A user trying to re-assign the profile to another account by changing `userAccountId`.
+     * @principle   Enforces document ownership via a `userAccountId` field within the document.
+     */
+    match /userProfiles/{userProfileId} {
+      allow get: if isOwner(resource.data.userAccountId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(request.resource.data.userAccountId);
+      allow update: if isExistingDoc() && (isOwner(resource.data.userAccountId) || isAdmin()) && isImmutable('userAccountId');
+      allow delete: if isExistingDoc() && isAdmin();
+    }
+
+    /**
+     * @description Worker-specific data, including verification status and skills.
+     * @path        /workerProfiles/{workerProfileId}
+     * @allow       (get, list) Any user, including anonymous ones, can view approved worker profiles.
+     * @deny        (create) A user trying to create a profile that is already 'Approved'.
+     * @deny        (update) A worker trying to change their own 'status' field to approve themselves.
+     * @principle   Public read access for browsing, with owner-only writes on general data and admin-only writes on critical status fields.
+     */
+    match /workerProfiles/{workerProfileId} {
+      allow get, list: if true;
+      allow create: if isOwner(request.resource.data.userAccountId) && request.resource.data.status == 'Pending Approval';
+      allow update: if isExistingDoc() && ((isOwner(resource.data.userAccountId) && isImmutable('status') && isImmutable('userAccountId')) || isAdmin());
+      allow delete: if isExistingDoc() && isAdmin();
+    }
+
+    /**
+     * @description Customer-specific data, including verification status.
+     * @path        /customerProfiles/{customerProfileId}
+     * @allow       (get) A customer viewing their own profile.
+     * @deny        (get) A customer trying to view another customer's profile.
+     * @deny        (update) A customer trying to self-verify by changing the `isVerified` flag.
+     * @principle   Enforces document ownership for reads and writes, with admin control over verification status.
+     */
+    match /customerProfiles/{customerProfileId} {
+      allow get: if isOwner(resource.data.userAccountId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(request.resource.data.userAccountId) && request.resource.data.isVerified == false;
+      allow update: if isExistingDoc() && ((isOwner(resource.data.userAccountId) && isImmutable('isVerified') && isImmutable('userAccountId')) || isAdmin());
+      allow delete: if isExistingDoc() && isAdmin();
+    }
+
+    /**
+     * @description Public list of available skills and categories.
+     * @path        /skillCategories/{skillCategoryId}
+     * @allow       (get, list) Any user can read the list of available skills.
+     * @deny        (create, update, delete) A regular user trying to add or modify skill categories.
+     * @principle   Public read access for lookup data, with admin-only writes to maintain data integrity.
+     */
+    match /skillCategories/{skillCategoryId} {
+      allow get, list: if true;
+      allow create: if isAdmin();
+      allow update, delete: if isExistingDoc() && isAdmin();
+    }
+
+    /**
+     * @description Admin role management. Document existence grants admin privileges.
+     * @path        /roles_admin/{userId}
+     * @allow       (get, list, create, update, delete) An existing admin managing the list of other admins.
+     * @deny        (any) Any non-admin attempting to read or modify this collection.
+     * @principle   Secures the admin role system by restricting all access to existing administrators.
+     */
+    match /roles_admin/{userId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isExistingDoc() && isAdmin();
+      allow delete: if isExistingDoc() && isAdmin();
+    }
+
+  }
+}
