@@ -69,9 +69,11 @@ export interface ChatMessage {
     id: string;
     conversationId: string;
     senderId: string;
-    content: string;
+    content: string; // Description for proposals
     createdAt: string; // ISO date string
     contentType: 'text' | 'proposal' | 'system';
+    proposalAmount?: number;
+    proposalStatus?: 'pending' | 'accepted' | 'countered' | 'rejected';
 }
 
     

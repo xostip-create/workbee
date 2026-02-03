@@ -263,7 +263,7 @@
         },
         "content": {
           "type": "string",
-          "description": "The text content of the message."
+          "description": "The text content of the message, or description for a proposal."
         },
         "createdAt": {
           "type": "string",
@@ -277,6 +277,20 @@
             "text",
             "proposal",
             "system"
+          ]
+        },
+        "proposalAmount": {
+          "type": "number",
+          "description": "The amount for a price proposal. Only present if contentType is 'proposal'."
+        },
+        "proposalStatus": {
+          "type": "string",
+          "description": "The status of a price proposal. Only present if contentType is 'proposal'.",
+          "enum": [
+            "pending",
+            "accepted",
+            "countered",
+            "rejected"
           ]
         }
       },

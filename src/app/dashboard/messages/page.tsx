@@ -1,12 +1,44 @@
+'use client';
+
+import { useState } from 'react';
 import { CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DollarSign, Send } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PriceProposalDialog } from '@/components/dashboard/price-proposal-dialog';
+import { PriceProposalCard } from '@/components/dashboard/price-proposal-card';
+import type { ChatMessage } from '@/types';
+import { cn } from '@/lib/utils';
+import { useUser } from '@/firebase';
+
 
 export default function MessagesPage() {
+  const [isProposalOpen, setIsProposalOpen] = useState(false);
+  const { user } = useUser();
+
+  // This is a mock message for demonstration. In a real app, this would come from Firestore.
+  const mockProposalMessage: ChatMessage = {
+    id: 'proposal1',
+    conversationId: 'conv1',
+    senderId: 'somebody-else', // Not the current user, so they can respond
+    content: 'Installation of new kitchen sink and faucet.',
+    createdAt: new Date().toISOString(),
+    contentType: 'proposal',
+    proposalAmount: 250,
+    proposalStatus: 'pending',
+  };
+
+  const mockAcceptedProposal: ChatMessage = {
+    ...mockProposalMessage,
+    id: 'proposal2',
+    senderId: user?.uid || 'me',
+    proposalStatus: 'accepted'
+  }
+
+
   return (
+    <>
     <div className="grid h-[calc(100vh-8rem)] w-full grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
         <div className="hidden flex-col border-r bg-muted/40 md:flex">
             <CardHeader>
@@ -54,11 +86,15 @@ export default function MessagesPage() {
                             <p>Hi, I saw your job post for the leaky faucet. I'm available to take a look tomorrow afternoon.</p>
                         </div>
                     </div>
-                    <div className="flex items-end gap-2 justify-end">
-                         <div className="max-w-xs rounded-lg bg-muted p-3">
+                    <div className={cn("flex items-end gap-2 justify-end")}>
+                         <div className={cn("max-w-xs rounded-lg p-3 bg-muted")}>
                             <p>That works for me. What time were you thinking?</p>
                         </div>
                     </div>
+
+                    <PriceProposalCard message={mockProposalMessage} conversationId="conv1" />
+                    <PriceProposalCard message={mockAcceptedProposal} conversationId="conv1" />
+
                 </div>
             </main>
             <footer className="border-t bg-background px-4 py-3">
@@ -69,7 +105,7 @@ export default function MessagesPage() {
                     className="flex-1"
                     autoComplete="off"
                     />
-                    <Button variant="outline" className="whitespace-nowrap">
+                    <Button type="button" variant="outline" className="whitespace-nowrap" onClick={() => setIsProposalOpen(true)}>
                         <DollarSign className="mr-2 h-4 w-4" />
                         Propose Price
                     </Button>
@@ -84,6 +120,9 @@ export default function MessagesPage() {
             </footer>
         </div>
     </div>
+    <PriceProposalDialog isOpen={isProposalOpen} setIsOpen={setIsProposalOpen} conversationId="conv1" />
+    </>
   );
 }
+
     
