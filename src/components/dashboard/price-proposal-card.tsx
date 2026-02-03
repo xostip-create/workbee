@@ -1,7 +1,7 @@
 'use client';
 
 import type { ChatMessage } from '@/types';
-import { useUser, useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,18 +20,51 @@ export function PriceProposalCard({ message, conversationId }: PriceProposalCard
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    if (message.contentType !== 'proposal') return null;
+    if (message.contentType !== 'proposal' || message.proposalStatus === 'accepted') return null;
 
     const isReceiver = user?.uid && message.senderId !== user.uid;
     const canRespond = isReceiver && message.proposalStatus === 'pending';
 
     const handleResponse = (status: 'accepted' | 'rejected' | 'countered') => {
-        if (!conversationId || !message.id) return;
+        if (!conversationId || !message.id || !user) return;
 
-        const messageRef = doc(firestore, 'conversations', conversationId, 'messages', message.id);
-        updateDocumentNonBlocking(messageRef, { proposalStatus: status });
+        if (status === 'accepted') {
+            const jobRef = doc(firestore, 'jobs', message.id);
+            const price = message.proposalAmount || 0;
+            const serviceFee = price * 0.10; // 10% service fee
+            const totalAmount = price + serviceFee;
 
-        toast({ title: `Proposal ${status.charAt(0).toUpperCase() + status.slice(1)}` });
+            // The user accepting is the customer, the sender of the proposal is the worker
+            const jobData = {
+                id: message.id,
+                customerId: user.uid, // The one who accepts
+                workerId: message.senderId, // The one who proposed
+                conversationId,
+                description: message.content,
+                price,
+                serviceFee,
+                totalAmount,
+                status: 'AwaitingPayment',
+                createdAt: new Date().toISOString(),
+            };
+
+            // Create Job doc
+            setDocumentNonBlocking(jobRef, jobData, { merge: true });
+
+            // Update message
+            const messageRef = doc(firestore, 'conversations', conversationId, 'messages', message.id);
+            updateDocumentNonBlocking(messageRef, { 
+                proposalStatus: 'accepted',
+                jobId: message.id
+            });
+
+            toast({ title: 'Proposal Accepted', description: 'Proceed to payment.' });
+
+        } else {
+            const messageRef = doc(firestore, 'conversations', conversationId, 'messages', message.id);
+            updateDocumentNonBlocking(messageRef, { proposalStatus: status });
+            toast({ title: `Proposal ${status.charAt(0).toUpperCase() + status.slice(1)}` });
+        }
     };
 
     const getStatusBadge = () => {
@@ -81,5 +114,3 @@ export function PriceProposalCard({ message, conversationId }: PriceProposalCard
         </div>
     )
 }
-
-    

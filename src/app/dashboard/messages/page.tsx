@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, Send } from 'lucide-react';
 import { PriceProposalDialog } from '@/components/dashboard/price-proposal-dialog';
 import { PriceProposalCard } from '@/components/dashboard/price-proposal-card';
-import type { ChatMessage } from '@/types';
+import type { ChatMessage, Job } from '@/types';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
+import { PaymentCard } from '@/components/dashboard/payment-card';
 
 
 export default function MessagesPage() {
@@ -32,9 +33,29 @@ export default function MessagesPage() {
   const mockAcceptedProposal: ChatMessage = {
     ...mockProposalMessage,
     id: 'proposal2',
-    senderId: user?.uid || 'me',
-    proposalStatus: 'accepted'
+    senderId: 'somebody-else',
+    proposalStatus: 'accepted',
+    jobId: 'job1'
   }
+
+  const mockJobAwaitingPayment: Job = {
+    id: 'job1',
+    conversationId: 'conv1',
+    customerId: user?.uid || 'me',
+    workerId: 'somebody-else',
+    description: 'Installation of new kitchen sink and faucet.',
+    price: 25000,
+    serviceFee: 2500,
+    totalAmount: 27500,
+    status: 'AwaitingPayment',
+    createdAt: new Date().toISOString(),
+  };
+
+  const mockJobPaymentSecured: Job = {
+    ...mockJobAwaitingPayment,
+    id: 'job2',
+    status: 'PaymentSecured',
+  };
 
 
   return (
@@ -92,8 +113,14 @@ export default function MessagesPage() {
                         </div>
                     </div>
 
+                    {/* Pending Proposal */}
                     <PriceProposalCard message={mockProposalMessage} conversationId="conv1" />
-                    <PriceProposalCard message={mockAcceptedProposal} conversationId="conv1" />
+
+                    {/* Accepted Proposal -> Show Payment Card */}
+                    <PaymentCard job={mockJobAwaitingPayment} />
+
+                    {/* Paid Job -> Show Secured Status */}
+                    <PaymentCard job={mockJobPaymentSecured} />
 
                 </div>
             </main>
@@ -120,9 +147,7 @@ export default function MessagesPage() {
             </footer>
         </div>
     </div>
-    <PriceProposalDialog isOpen={isProposalOpen} setIsOpen={setIsProposalOpen} conversationId="conv1" />
+    <PriceProposalDialog isOpen={isProposalOpen} setIsOpen={setIsOpen} conversationId="conv1" />
     </>
   );
 }
-
-    

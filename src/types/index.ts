@@ -74,6 +74,20 @@ export interface ChatMessage {
     contentType: 'text' | 'proposal' | 'system';
     proposalAmount?: number;
     proposalStatus?: 'pending' | 'accepted' | 'countered' | 'rejected';
+    jobId?: string;
 }
 
-    
+export interface Job {
+    id: string;
+    customerId: string;
+    workerId: string;
+    conversationId: string;
+    description: string;
+    price: number;
+    serviceFee: number;
+    totalAmount: number;
+    status: 'AwaitingPayment' | 'PaymentSecured' | 'Completed' | 'Disputed' | 'Cancelled';
+    createdAt: string; // ISO
+    paidAt?: string; // ISO
+    completedAt?: string; // ISO
+}

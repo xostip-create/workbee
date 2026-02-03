@@ -17,6 +17,7 @@
  * - /roles_admin: A collection where document existence grants admin rights.
  * - /conversations: Metadata for chat conversations.
  * - /conversations/{conversationId}/messages: Messages within a conversation.
+ * - /jobs: Job data created from accepted proposals.
  *
  * Key Security Decisions:
  * - Admin Access: A user is considered an 'Admin' if a document with their UID
@@ -35,6 +36,7 @@
  *   user and can only be changed by an administrator, ensuring a secure approval flow.
  * - Chat Security: Users can only read/write messages in conversations where they are
  *   listed as a participant.
+ * - Job Security: Only the customer or worker involved in a job can view it. Only the customer can create it (from a proposal) and update its state (e.g., after payment).
  *
  * Denormalization for Authorization:
  * To create simpler and more performant rules, profile documents like 'workerProfiles'
@@ -213,7 +215,7 @@ service cloud.firestore {
      * @path        /conversations/{conversationId}/messages/{messageId}
      * @allow       (get, list) Any participant in the parent conversation.
      * @allow       (create) The sender must be a participant in the parent conversation.
-     * @deny        (update, delete) To maintain chat integrity.
+     * @deny        (update, delete) To maintain chat integrity, except for status updates by participants.
      * @principle   Users can only read/write messages in conversations they belong to.
      */
     match /conversations/{conversationId}/messages/{messageId} {
@@ -223,9 +225,39 @@ service cloud.firestore {
       }
       allow read: if isConversationParticipant();
       allow create: if isConversationParticipant() && request.resource.data.senderId == request.auth.uid;
-      allow update, delete: if false;
+      // Allow participants to update proposal status
+      allow update: if isConversationParticipant() && isExistingDoc();
+      allow delete: if false;
+    }
+    
+    /**
+     * @description Job data, created from an accepted proposal.
+     * @path /jobs/{jobId}
+     * @allow (get) Any participant in the job (customer or worker) or an admin.
+     * @allow (create) The customer of the job.
+     * @allow (update) The customer of the job, for state transitions like payment.
+     * @principle Secures job data to only involved parties.
+     */
+    match /jobs/{jobId} {
+      function isJobParticipant() {
+        return isSignedIn() && (request.auth.uid == resource.data.customerId || request.auth.uid == resource.data.workerId);
+      }
+      function isJobCustomer() {
+        return isSignedIn() && request.auth.uid == resource.data.customerId;
+      }
+
+      allow get: if isJobParticipant() || isAdmin();
+      allow list: if isSignedIn(); // Client must query for their own jobs using a where clause.
+      
+      // Only the customer can create a job from a proposal, and they must be the customer in the new doc
+      allow create: if isOwner(request.resource.data.customerId);
+
+      // Customer can update status (e.g. after paying or completing). Admins can edit anything.
+      allow update: if isExistingDoc() && (
+        (isJobCustomer() && isImmutable('customerId') && isImmutable('workerId')) || isAdmin()
+      );
+      allow delete: if isAdmin();
     }
 
   }
 }
-    
