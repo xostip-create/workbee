@@ -15,6 +15,8 @@
  * - /customerProfiles: Data specific to 'Customer' users.
  * - /skillCategories: Publicly readable list of skills.
  * - /roles_admin: A collection where document existence grants admin rights.
+ * - /conversations: Metadata for chat conversations.
+ * - /conversations/{conversationId}/messages: Messages within a conversation.
  *
  * Key Security Decisions:
  * - Admin Access: A user is considered an 'Admin' if a document with their UID
@@ -31,6 +33,8 @@
  * - Safe Onboarding: Users creating worker or customer profiles cannot set their own
  *   status to 'Approved' or 'Verified'. These critical fields are immutable for the
  *   user and can only be changed by an administrator, ensuring a secure approval flow.
+ * - Chat Security: Users can only read/write messages in conversations where they are
+ *   listed as a participant.
  *
  * Denormalization for Authorization:
  * To create simpler and more performant rules, profile documents like 'workerProfiles'
@@ -186,5 +190,42 @@ service cloud.firestore {
       allow delete: if isExistingDoc() && isAdmin();
     }
 
+    /**
+     * @description Chat conversations between users.
+     * @path        /conversations/{conversationId}
+     * @allow       (get, update) Any participant in the conversation.
+     * @allow       (list) A user can only list conversations they are part of.
+     * @allow       (create) An authenticated user creating a conversation they are part of.
+     * @principle   Enforces that users can only access their own conversations.
+     */
+    match /conversations/{conversationId} {
+      function isParticipant() {
+        return request.auth.uid in resource.data.participantIds;
+      }
+      allow get, update: if isSignedIn() && isParticipant();
+      allow list: if isSignedIn(); // Client must query with `where('participantIds', 'array-contains', request.auth.uid)`
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Messages within a chat conversation.
+     * @path        /conversations/{conversationId}/messages/{messageId}
+     * @allow       (get, list) Any participant in the parent conversation.
+     * @allow       (create) The sender must be a participant in the parent conversation.
+     * @deny        (update, delete) To maintain chat integrity.
+     * @principle   Users can only read/write messages in conversations they belong to.
+     */
+    match /conversations/{conversationId}/messages/{messageId} {
+      function isConversationParticipant() {
+        return exists(/databases/$(database)/documents/conversations/$(conversationId)) &&
+               request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
+      }
+      allow read: if isConversationParticipant();
+      allow create: if isConversationParticipant() && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
   }
 }
+    

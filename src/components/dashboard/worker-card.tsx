@@ -52,8 +52,12 @@ export function WorkerCard({ worker }: WorkerCardProps) {
         <Button asChild className="flex-1" size="sm">
             <Link href={`/profile/${worker.id}`}>View Profile</Link>
         </Button>
-        <Button variant="outline" className="flex-1" size="sm">Contact</Button>
+        <Button asChild variant="outline" className="flex-1" size="sm">
+            <Link href={`/dashboard/messages?to=${worker.id}`}>Message</Link>
+        </Button>
       </CardFooter>
     </Card>
   );
 }
+
+    

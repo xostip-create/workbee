@@ -57,3 +57,21 @@ export type DisplayWorker = {
     verified: boolean; // Should always be true here
     distance: number | null;
 };
+
+export interface Conversation {
+    id: string;
+    participantIds: string[];
+    lastMessage?: string;
+    updatedAt: string; // ISO date string
+}
+
+export interface ChatMessage {
+    id: string;
+    conversationId: string;
+    senderId: string;
+    content: string;
+    createdAt: string; // ISO date string
+    contentType: 'text' | 'proposal' | 'system';
+}
+
+    

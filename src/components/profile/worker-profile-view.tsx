@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, Verified, MapPin, Briefcase, Calendar, Video } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface WorkerProfileViewProps {
   userProfile: UserProfile;
@@ -42,7 +43,9 @@ export function WorkerProfileView({ userProfile, workerProfile, distance }: Work
                 <span className="font-bold">{(workerProfile.averageRating || 0).toFixed(1)}</span>
                 <span className="text-sm text-muted-foreground">({workerProfile.reviewsCount || 0} reviews)</span>
             </div>
-             <Button className="mt-4 w-full">Contact Worker</Button>
+             <Button asChild className="mt-4 w-full">
+                <Link href={`/dashboard/messages?to=${userProfile.id}`}>Message Worker</Link>
+            </Button>
           </CardContent>
         </Card>
         
@@ -124,3 +127,5 @@ export function WorkerProfileView({ userProfile, workerProfile, distance }: Work
     </div>
   );
 }
+
+    

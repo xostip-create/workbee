@@ -1,8 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send } from 'lucide-react';
+import { DollarSign, Send } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function MessagesPage() {
   return (
@@ -60,16 +61,29 @@ export default function MessagesPage() {
                     </div>
                 </div>
             </main>
-            <footer className="border-t p-4">
-                <form className="relative">
-                    <Input placeholder="Type a message..." className="pr-16" />
-                    <Button type="submit" size="icon" className="absolute right-2.5 top-1/2 -translate-y-1/2 h-8 w-8">
+            <footer className="border-t bg-background px-4 py-3">
+                <form className="flex w-full items-center space-x-2">
+                    <Input
+                    id="message"
+                    placeholder="Type your message..."
+                    className="flex-1"
+                    autoComplete="off"
+                    />
+                    <Button variant="outline" className="whitespace-nowrap">
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        Propose Price
+                    </Button>
+                    <Button type="submit" size="icon">
                         <Send className="h-4 w-4" />
-                        <span className="sr-only">Send Message</span>
+                        <span className="sr-only">Send</span>
                     </Button>
                 </form>
+                <p className="mt-2 text-xs text-center text-muted-foreground">
+                    For your safety, all communication and payment must stay in the app.
+                </p>
             </footer>
         </div>
     </div>
   );
 }
+    
