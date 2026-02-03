@@ -1,3 +1,5 @@
+// This file is now primarily for type definitions, as data will come from Firestore.
+
 export type Worker = {
     id: string;
     name: string;

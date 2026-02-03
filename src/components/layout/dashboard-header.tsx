@@ -14,8 +14,17 @@ import { Menu, Search } from 'lucide-react';
 import Link from 'next/link';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Input } from '../ui/input';
+import { useAuth, useUser } from '@/firebase';
+import { AppSidebar } from './sidebar';
 
 export function DashboardHeader() {
+  const auth = useAuth();
+  const { user } = useUser();
+
+  const handleLogout = () => {
+    auth.signOut();
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
         <Sheet>
@@ -25,8 +34,8 @@ export function DashboardHeader() {
                     <span className="sr-only">Toggle Menu</span>
                 </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-xs">
-            {/* Mobile Sidebar Content can be replicated here or made into a component */}
+            <SheetContent side="left" className="sm:max-w-xs p-0">
+              <AppSidebar isMobile />
             </SheetContent>
         </Sheet>
       
@@ -42,8 +51,8 @@ export function DashboardHeader() {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
             <Avatar>
-              <AvatarImage src="https://picsum.photos/seed/user-avatar/40/40" alt="User avatar" data-ai-hint="person smiling" />
-              <AvatarFallback>U</AvatarFallback>
+              <AvatarImage src={user?.photoURL || "https://picsum.photos/seed/user-avatar/40/40"} alt="User avatar" data-ai-hint="person smiling" />
+              <AvatarFallback>{user?.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
@@ -53,7 +62,7 @@ export function DashboardHeader() {
           <DropdownMenuItem asChild><Link href="/dashboard/profile">Profile</Link></DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Logout</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
