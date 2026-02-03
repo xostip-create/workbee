@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "A group of diverse professionals working together.",
+      "imageUrl": "https://images.unsplash.com/photo-1517048676732-d65bc937f952?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx0ZWFtJTIwd29ya2luZ3xlbnwwfHx8fDE3NzAwOTg1OTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "team working"
+    },
+    {
+      "id": "avatar1",
+      "description": "Avatar for a male worker.",
+      "imageUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxwb3J0cmFpdCUyMG1hbnxlbnwwfHx8fDE3NzAwNzE4MDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portrait man"
+    },
+    {
+      "id": "avatar2",
+      "description": "Avatar for a female worker.",
+      "imageUrl": "https://images.unsplash.com/photo-1669844444850-5acd7e8c71c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwb3J0cmFpdCUyMHdvbWFufGVufDB8fHx8MTc3MDA5MDcwNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "portrait woman"
+    },
+    {
+      "id": "avatar3",
+      "description": "Avatar for a worker.",
+      "imageUrl": "https://images.unsplash.com/photo-1623605931891-d5b95ee98459?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxwZXJzb24lMjBzbWlsaW5nfGVufDB8fHx8MTc3MDAyMTgyOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person smiling"
+    },
+    {
+      "id": "feature-search",
+      "description": "Illustration for location-based search feature.",
+      "imageUrl": "https://images.unsplash.com/photo-1542909359-544eb870c007?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYXAlMjBsb2NhdGlvbnxlbnwwfHx8fDE3NzAwODMwNjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "map location"
+    },
+    {
+      "id": "feature-jobs",
+      "description": "Illustration for job posting feature.",
+      "imageUrl": "https://images.unsplash.com/photo-1767449356630-c60094b1d1b4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxqb2IlMjBib2FyZHxlbnwwfHx8fDE3NzAxNDUxNzJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "job board"
+    },
+    {
+      "id": "feature-secure",
+      "description": "Illustration for secure communication and payment.",
+      "imageUrl": "https://images.unsplash.com/photo-1768839720841-8219c4da7436?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzZWN1cmUlMjB0cmFuc2FjdGlvbnxlbnwwfHx8fDE3NzAwOTQ1OTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "secure transaction"
+    }
+  ]
 }
