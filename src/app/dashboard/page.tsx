@@ -22,6 +22,8 @@ import {
   import { useFirestore } from '@/firebase/provider';
   import type { UserAccount, WorkerProfile } from '@/types';
   import { Loader2 } from 'lucide-react';
+  import { useRouter } from 'next/navigation';
+  import { useEffect } from 'react';
 
 const WorkerDashboard = () => {
     const { user } = useUser();
@@ -81,7 +83,7 @@ const CustomerDashboard = () => (
       <div className="flex items-center justify-between space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <Button asChild>
-            <Link href="/dashboard/jobs">Post a New Job</Link>
+            <Link href="/dashboard/jobs/new">Post a New Job</Link>
           </Button>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -109,52 +111,10 @@ const CustomerDashboard = () => (
     </>
 );
 
-const AdminDashboard = () => {
-    const firestore = useFirestore();
-    const pendingWorkersRef = useMemoFirebase(() => {
-        if (!firestore) return null;
-        // In a real app, you would add a query here: query(collection(firestore, 'workerProfiles'), where('status', '==', 'Pending Approval'))
-        return doc(firestore, 'workerProfiles');
-    }, [firestore]);
-    const { data: pendingWorkers } = useDoc<WorkerProfile[]>(pendingWorkersRef);
-
-    const pendingCount = pendingWorkers?.length || 0;
-
-    return (
-        <>
-            <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{pendingCount}</div>
-                        <p className="text-xs text-muted-foreground">New users waiting for verification</p>
-                        <Button size="sm" className="mt-2" asChild>
-                            <Link href="/admin">Review Now</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">...</div>
-                        <p className="text-xs text-muted-foreground">Loading...</p>
-                    </CardContent>
-                </Card>
-            </div>
-        </>
-    );
-}
-
 export default function DashboardPage() {
     const { user } = useUser();
     const firestore = useFirestore();
+    const router = useRouter();
     
     const userAccountRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -163,7 +123,13 @@ export default function DashboardPage() {
 
     const { data: userAccount, isLoading } = useDoc<UserAccount>(userAccountRef);
 
-    if (isLoading || !userAccount) {
+    useEffect(() => {
+        if (userAccount && userAccount.role === 'admin') {
+            router.replace('/admin');
+        }
+    }, [userAccount, router]);
+
+    if (isLoading || !userAccount || userAccount.role === 'admin') {
         return (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -178,9 +144,6 @@ export default function DashboardPage() {
         break;
       case 'customer':
         content = <CustomerDashboard />;
-        break;
-      case 'admin':
-        content = <AdminDashboard />;
         break;
       default:
         content = <p>Welcome to your dashboard.</p>;

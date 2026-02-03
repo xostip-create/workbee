@@ -19,11 +19,87 @@ import {
   import { Button } from '@/components/ui/button';
   import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
   import { collection, doc, query, where } from 'firebase/firestore';
-  import type { WorkerProfile, UserProfile } from '@/types';
-  import { Loader2 } from 'lucide-react';
+  import type { WorkerProfile, UserAccount, Job } from '@/types';
+  import { Loader2, Users, Briefcase, DollarSign, UserCheck } from 'lucide-react';
   import { toast } from '@/hooks/use-toast';
   
-  export default function AdminPage() {
+  function AdminStats() {
+    const firestore = useFirestore();
+
+    const pendingWorkersQuery = useMemoFirebase(() => {
+        return query(collection(firestore, 'workerProfiles'), where('status', '==', 'Pending Approval'));
+    }, [firestore]);
+    const { data: pendingUsers, isLoading: isLoadingPending } = useCollection<WorkerProfile>(pendingWorkersQuery);
+
+    const allUsersQuery = useMemoFirebase(() => collection(firestore, 'userAccounts'), [firestore]);
+    const { data: allUsers, isLoading: isLoadingUsers } = useCollection<UserAccount>(allUsersQuery);
+    
+    const allJobsQuery = useMemoFirebase(() => collection(firestore, 'jobs'), [firestore]);
+    const { data: allJobs, isLoading: isLoadingJobs } = useCollection<Job>(allJobsQuery);
+
+    const completedJobsQuery = useMemoFirebase(() => query(collection(firestore, 'jobs'), where('status', '==', 'Completed')), [firestore]);
+    const { data: completedJobs, isLoading: isLoadingCompletedJobs } = useCollection<Job>(completedJobsQuery);
+
+    const totalRevenue = completedJobs?.reduce((sum, job) => sum + job.serviceFee, 0) || 0;
+
+    const isLoading = isLoadingPending || isLoadingUsers || isLoadingJobs || isLoadingCompletedJobs;
+
+    if (isLoading) {
+        return <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card><CardHeader><CardTitle>Pending Approvals</CardTitle></CardHeader><CardContent><Loader2 className="animate-spin" /></CardContent></Card>
+            <Card><CardHeader><CardTitle>Total Users</CardTitle></CardHeader><CardContent><Loader2 className="animate-spin" /></CardContent></Card>
+            <Card><CardHeader><CardTitle>Total Jobs</CardTitle></CardHeader><CardContent><Loader2 className="animate-spin" /></CardContent></Card>
+            <Card><CardHeader><CardTitle>Total Revenue</CardTitle></CardHeader><CardContent><Loader2 className="animate-spin" /></CardContent></Card>
+        </div>
+    }
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+                    <UserCheck className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{pendingUsers?.length || 0}</div>
+                    <p className="text-xs text-muted-foreground">Workers waiting for verification.</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{allUsers?.length || 0}</div>
+                    <p className="text-xs text-muted-foreground">Total users on the platform.</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Jobs</CardTitle>
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{allJobs?.length || 0}</div>
+                    <p className="text-xs text-muted-foreground">Jobs created, both active and completed.</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">₦{totalRevenue.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">From completed jobs service fees.</p>
+                </CardContent>
+            </Card>
+        </div>
+    )
+  }
+
+  function PendingWorkersTable() {
     const firestore = useFirestore();
 
     const pendingWorkersQuery = useMemoFirebase(() => {
@@ -32,38 +108,32 @@ import {
 
     const { data: pendingUsers, isLoading } = useCollection<WorkerProfile>(pendingWorkersQuery);
 
-    const handleApproval = (workerId: string, newStatus: 'Approved' | 'Blocked') => {
-        const workerDocRef = doc(firestore, 'workerProfiles', workerId);
+    const handleApproval = (workerProfileId: string, newStatus: 'Approved' | 'Blocked') => {
+        if (!workerProfileId) return;
+        const workerDocRef = doc(firestore, 'workerProfiles', workerProfileId);
         updateDocumentNonBlocking(workerDocRef, { status: newStatus });
         toast({
             title: `User ${newStatus}`,
-            description: `The user has been ${newStatus.toLowerCase()}.`,
+            description: `The worker has been ${newStatus.toLowerCase()}.`,
         });
     };
-  
+
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Approvals</h1>
-          <p className="text-muted-foreground">Review and approve new user registrations.</p>
-        </div>
-        <Card>
+         <Card>
           <CardHeader>
-            <CardTitle>Pending Workers</CardTitle>
+            <CardTitle>Pending Worker Approvals</CardTitle>
             <CardDescription>
-              The following workers are waiting for verification.
+              The following workers are waiting for verification. Review their profile before approving.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User ID</TableHead>
+                  <TableHead>Worker User ID</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Availability</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -83,6 +153,9 @@ import {
                         <TableCell>{user.availability}</TableCell>
                         <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
+                            <Button variant="outline" size="sm" asChild>
+                                <a href={`/profile/${user.userAccountId}`} target="_blank" rel="noopener noreferrer">View Profile</a>
+                            </Button>
                             <Button variant="outline" size="sm" onClick={() => handleApproval(user.id, 'Approved')}>
                             Approve
                             </Button>
@@ -102,6 +175,18 @@ import {
             </Table>
           </CardContent>
         </Card>
+    )
+  }
+  
+  export default function AdminPage() {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Oversee and manage the E&F WorkBee platform.</p>
+        </div>
+        <AdminStats />
+        <PendingWorkersTable />
       </div>
     );
   }
