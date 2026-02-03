@@ -22,6 +22,7 @@ const profileSchema = z.object({
   skills: z.string().optional(),
   availability: z.string().optional(),
   bio: z.string().optional(),
+  videoUrl: z.string().url({ message: "Please enter a valid YouTube URL." }).optional().or(z.literal('')),
 });
 
 export default function ProfilePage() {
@@ -43,19 +44,21 @@ export default function ProfilePage() {
       skills: '',
       availability: '',
       bio: '',
+      videoUrl: '',
     },
   });
 
   useEffect(() => {
     if (userProfile) {
       form.setValue('fullName', userProfile.fullName);
-      form.setValue('bio', userProfile.bio);
+      form.setValue('bio', userProfile.bio || '');
     }
     if (workerProfile) {
         // Assuming skillCategoryIds is an array of IDs, we'll join them.
         // In a real app, you'd fetch the skill names.
         form.setValue('skills', workerProfile.skillCategoryIds?.join(', '));
         form.setValue('availability', workerProfile.availability);
+        form.setValue('videoUrl', workerProfile.videoUrl || '');
     }
   }, [userProfile, workerProfile, form]);
 
@@ -102,6 +105,7 @@ export default function ProfilePage() {
         updateDocumentNonBlocking(workerProfileRef, {
             skillCategoryIds: values.skills?.split(',').map(s => s.trim()).filter(Boolean) || [],
             availability: values.availability,
+            videoUrl: values.videoUrl || "",
         });
     }
 
@@ -182,6 +186,18 @@ export default function ProfilePage() {
                                     <FormLabel>Availability</FormLabel>
                                     <FormControl><Input {...field} placeholder="e.g., Weekdays, 9am-5pm" /></FormControl>
                                     <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="videoUrl"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>YouTube Showcase Video</FormLabel>
+                                    <FormControl><Input {...field} placeholder="https://www.youtube.com/watch?v=..."/></FormControl>
+                                    <FormMessage />
+                                    <p className="text-sm text-muted-foreground">Paste a link to a YouTube video to showcase your work.</p>
                                 </FormItem>
                                 )}
                             />

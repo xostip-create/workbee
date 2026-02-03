@@ -15,8 +15,30 @@ interface WorkerProfileViewProps {
   distance: number | null;
 }
 
+function getYouTubeId(url: string): string | null {
+    if (!url) return null;
+    let videoId: string | null = null;
+    try {
+        const urlObj = new URL(url);
+        if (urlObj.hostname === 'youtu.be') {
+            videoId = urlObj.pathname.slice(1);
+        } else if (urlObj.hostname.includes('youtube.com')) {
+            videoId = urlObj.searchParams.get('v');
+        }
+        // Regex to ensure it's a valid YouTube ID format
+        if (videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+            return videoId;
+        }
+    } catch (e) {
+        // Invalid URL format
+        return null;
+    }
+    return null;
+}
+
 export function WorkerProfileView({ userProfile, workerProfile, distance }: WorkerProfileViewProps) {
   const isApproved = workerProfile.status === 'Approved';
+  const videoId = workerProfile.videoUrl ? getYouTubeId(workerProfile.videoUrl) : null;
 
   return (
     <div className="grid gap-6 md:grid-cols-3">
@@ -99,12 +121,19 @@ export function WorkerProfileView({ userProfile, workerProfile, distance }: Work
         <Card>
             <CardHeader>
                 <CardTitle>Work Showcase</CardTitle>
-                <CardDescription>Approved videos and images from past jobs.</CardDescription>
+                <CardDescription>A video from the worker showcasing their skills.</CardDescription>
             </CardHeader>
             <CardContent>
-                {workerProfile.videoUrl ? (
-                     <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
-                        <p className="text-muted-foreground">Video player placeholder</p>
+                {videoId ? (
+                     <div className="aspect-video bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                        <iframe
+                            className="w-full h-full"
+                            src={`https://www.youtube.com/embed/${videoId}`}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                        ></iframe>
                      </div>
                 ): (
                     <div className="text-center text-muted-foreground py-8">
@@ -127,5 +156,3 @@ export function WorkerProfileView({ userProfile, workerProfile, distance }: Work
     </div>
   );
 }
-
-    
