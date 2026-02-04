@@ -1,10 +1,10 @@
 {
   "placeholderImages": [
     {
-      "id": "hero",
-      "description": "A group of diverse professionals working together.",
-      "imageUrl": "https://images.unsplash.com/photo-1517048676732-d65bc937f952?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx0ZWFtJTIwd29ya2luZ3xlbnwwfHx8fDE3NzAwOTg1OTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "team working"
+      "id": "hero-landing",
+      "description": "A friendly handyman holding tools and smiling.",
+      "imageUrl": "https://images.unsplash.com/photo-1574825313594-75c12e23a324?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxoYW5keW1hbnxlbnwwfHx8fDE3MjE4OTc4MDJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "handyman smiling"
     },
     {
       "id": "avatar1",
@@ -25,22 +25,16 @@
       "imageHint": "person smiling"
     },
     {
-      "id": "feature-search",
-      "description": "Illustration for location-based search feature.",
-      "imageUrl": "https://images.unsplash.com/photo-1542909359-544eb870c007?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYXAlMjBsb2NhdGlvbnxlbnwwfHx8fDE3NzAwODMwNjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "map location"
+      "id": "how-it-works-customer",
+      "description": "A person sitting at a desk and posting a job on a laptop.",
+      "imageUrl": "https://images.unsplash.com/photo-1516321497487-e288fb19713f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxwb3N0aW5nJTIwam9ifGVufDB8fHx8MTcyMTg5ODEyN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "posting job"
     },
     {
-      "id": "feature-jobs",
-      "description": "Illustration for job posting feature.",
-      "imageUrl": "https://images.unsplash.com/photo-1767449356630-c60094b1d1b4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxqb2IlMjBib2FyZHxlbnwwfHx8fDE3NzAxNDUxNzJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "job board"
-    },
-    {
-      "id": "feature-secure",
-      "description": "Illustration for secure communication and payment.",
-      "imageUrl": "https://images.unsplash.com/photo-1768839720841-8219c4da7436?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzZWN1cmUlMjB0cmFuc2FjdGlvbnxlbnwwfHx8fDE3NzAwOTQ1OTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "secure transaction"
+      "id": "how-it-works-worker",
+      "description": "A construction worker looking at his phone during a break.",
+      "imageUrl": "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjb25zdHJ1Y3Rpb24lMjB3b3JrZXIlMjBwaG9uZXxlbnwwfHx8fDE3MjE4OTgyNDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "worker phone"
     }
   ]
 }
