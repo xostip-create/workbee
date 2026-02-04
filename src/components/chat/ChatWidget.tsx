@@ -330,7 +330,9 @@ export default function ChatWidget() {
               </nav>
             </div>
           ) : (
-            <ChatView conversationId={selectedConversationId} />
+            <div className="flex-1 min-h-0">
+                <ChatView conversationId={selectedConversationId} />
+            </div>
           )}
         </div>
       )}
