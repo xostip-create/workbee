@@ -12,8 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@genkit-ai/googleai": "0.6.2",
-    "@genkit-ai/next": "0.6.2",
+    "@genkit-ai/googleai": "0.5.0",
     "@hookform/resolvers": "3.9.1",
     "@radix-ui/react-accordion": "1.2.0",
     "@radix-ui/react-alert-dialog": "1.1.1",
@@ -42,10 +41,9 @@
     "dotenv": "16.4.5",
     "embla-carousel-react": "8.1.6",
     "firebase": "10.12.2",
-    "genkit": "0.6.2",
-    "lucide-react": "0.417.0",
-    "next": "14.2.35",
-    "patch-package": "8.0.0",
+    "genkit": "0.5.0",
+    "lucide-react": "0.400.0",
+    "next": "14.2.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-hook-form": "7.52.1",
@@ -59,7 +57,6 @@
     "@types/node": "20.14.9",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
-    "genkit-cli": "0.6.2",
     "postcss": "8.4.38",
     "tailwindcss": "3.4.4",
     "typescript": "5.5.2"
