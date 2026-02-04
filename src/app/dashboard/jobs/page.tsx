@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import {
     Table,
     TableBody,
@@ -106,39 +106,56 @@ const WorkerJobs = () => {
             <Card>
                 <CardHeader>
                     <CardTitle>Open for Application</CardTitle>
-                    <CardDescription>A list of jobs you can apply for.</CardDescription>
+                    <CardDescription>A list of jobs you can apply for, sorted by the most recent.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                   <div className="space-y-4">
-                        {isLoading ? (
-                            <div className="text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></div>
-                        ) : jobs && jobs.length > 0 ? (
-                            jobs.map(job => (
-                                <Card key={job.id}>
-                                    <CardHeader>
-                                        <CardTitle>{job.title}</CardTitle>
-                                        <CardDescription>{job.address || 'Location not specified'}</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p className="line-clamp-2 text-sm">{job.description}</p>
-                                        <div className="flex gap-2 mt-2">
-                                            {job.skillCategoryIds.map(skill => <Badge key={skill} variant="secondary">{skill}</Badge>)}
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter className="flex justify-between">
-                                        <span className="text-sm text-muted-foreground">Posted {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}</span>
-                                        <Button asChild><Link href={`/dashboard/jobs/${job.id}`}>View & Apply</Link></Button>
-                                    </CardFooter>
-                                </Card>
-                            ))
-                        ) : (
-                             <div className="text-center text-muted-foreground py-10">
-                                <Briefcase className="mx-auto h-12 w-12" />
-                                <h3 className="font-semibold mt-4">No Available Jobs</h3>
-                                <p className="text-sm">There are currently no open jobs. Check back later!</p>
-                            </div>
-                        )}
-                   </div>
+                   <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Job Title</TableHead>
+                                <TableHead>Location</TableHead>
+                                <TableHead>Skills</TableHead>
+                                <TableHead>Posted</TableHead>
+                                <TableHead className="text-right">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-24 text-center">
+                                        <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                                    </TableCell>
+                                </TableRow>
+                            ) : jobs && jobs.length > 0 ? (
+                                jobs.map(job => (
+                                    <TableRow key={job.id}>
+                                        <TableCell className="font-medium max-w-xs truncate">{job.title}</TableCell>
+                                        <TableCell className="text-muted-foreground">{job.address || 'Not specified'}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-wrap gap-1">
+                                                {job.skillCategoryIds.slice(0, 2).map(skill => <Badge key={skill} variant="secondary">{skill}</Badge>)}
+                                                {job.skillCategoryIds.length > 2 && <Badge variant="outline">+{job.skillCategoryIds.length - 2}</Badge>}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">{formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button asChild size="sm">
+                                                <Link href={`/dashboard/jobs/${job.id}`}>View & Apply</Link>
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-48 text-center">
+                                        <Briefcase className="mx-auto h-12 w-12 text-muted-foreground" />
+                                        <h3 className="mt-4 font-semibold">No Available Jobs</h3>
+                                        <p className="text-sm text-muted-foreground">There are currently no open jobs. Check back later!</p>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                   </Table>
                 </CardContent>
             </Card>
         </div>

@@ -73,14 +73,6 @@ const WorkerDashboard = () => {
 
     const isLoading = isLoadingProfile || isLoadingCompleted || isLoadingActive || isLoadingApps;
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-        )
-    }
-
     const RecentApplications = () => (
         <Card>
             <CardHeader>
@@ -91,29 +83,29 @@ const WorkerDashboard = () => {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Job ID</TableHead>
+                            <TableHead className="max-w-[150px]">Job</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Date Applied</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>Applied</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {applications && applications.length > 0 ? (
+                        {isLoadingApps ? (
+                            <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="animate-spin mx-auto"/></TableCell></TableRow>
+                        ) : applications && applications.length > 0 ? (
                             applications.slice(0, 5).map(app => (
                                 <TableRow key={app.id}>
-                                    <TableCell className="font-mono text-xs truncate max-w-xs">{app.jobPostingId}</TableCell>
-                                    <TableCell><Badge variant={app.status === 'accepted' ? 'default' : app.status === 'pending' ? 'outline' : 'destructive'} className="capitalize">{app.status}</Badge></TableCell>
-                                    <TableCell>{formatDistanceToNow(new Date(app.createdAt), { addSuffix: true })}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="outline" size="sm" asChild>
-                                            <Link href={`/dashboard/jobs/${app.jobPostingId}`}>View Job</Link>
-                                        </Button>
+                                    <TableCell className="font-medium truncate">
+                                        <Link href={`/dashboard/jobs/${app.jobPostingId}`} className="hover:underline">
+                                            {app.jobPostingId}
+                                        </Link>
                                     </TableCell>
+                                    <TableCell><Badge variant={app.status === 'accepted' ? 'default' : app.status === 'pending' ? 'outline' : 'destructive'} className="capitalize">{app.status}</Badge></TableCell>
+                                    <TableCell className="text-muted-foreground">{formatDistanceToNow(new Date(app.createdAt), { addSuffix: true })}</TableCell>
                                 </TableRow>
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center py-10">No applications yet.</TableCell>
+                                <TableCell colSpan={3} className="text-center h-24">No applications yet.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
@@ -121,6 +113,14 @@ const WorkerDashboard = () => {
             </CardContent>
         </Card>
     );
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
@@ -185,8 +185,48 @@ const WorkerDashboard = () => {
                     </CardContent>
                 </Card>
             </div>
-
-            <RecentApplications />
+            
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Active Jobs</CardTitle>
+                        <CardDescription>Jobs that are currently in progress.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Job Title</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead className="text-right">View</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoadingActive ? (
+                                    <TableRow><TableCell colSpan={3} className="text-center"><Loader2 className="animate-spin mx-auto"/></TableCell></TableRow>
+                                ) : activeJobs && activeJobs.length > 0 ? (
+                                    activeJobs.map(job => (
+                                        <TableRow key={job.id}>
+                                            <TableCell className="font-medium max-w-xs truncate">{job.title}</TableCell>
+                                            <TableCell>₦{job.price.toLocaleString()}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <Link href={`/dashboard/messages?to=${job.customerId}`}>Chat</Link>
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center h-24">No active jobs.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <RecentApplications />
+            </div>
         </div>
     );
 };
