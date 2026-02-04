@@ -20,7 +20,7 @@ const formSchema = z.object({
   fullName: z.string().min(1, "Full name is required."),
   email: z.string().email({ message: "Please enter a valid email." }),
   password: z.string().min(8, { message: "Password must be at least 8 characters." }),
-  role: z.enum(["worker", "customer"], {
+  role: z.enum(["worker", "customer", "admin"], {
     required_error: "You need to select a role.",
   }),
 });
@@ -64,7 +64,7 @@ export function RegisterForm() {
         userAccountId: user.uid,
       }, { merge: true });
 
-      // Create Role-specific Profile
+      // Create Role-specific Profile or Admin Role
       if (values.role === 'worker') {
         const workerProfileRef = doc(firestore, "workerProfiles", user.uid);
         setDocumentNonBlocking(workerProfileRef, {
@@ -75,7 +75,7 @@ export function RegisterForm() {
             userProfileId: user.uid,
             userAccountId: user.uid,
         }, { merge: true });
-      } else { // customer
+      } else if (values.role === 'customer') {
         const customerProfileRef = doc(firestore, "customerProfiles", user.uid);
         setDocumentNonBlocking(customerProfileRef, {
             id: user.uid,
@@ -83,11 +83,15 @@ export function RegisterForm() {
             userProfileId: user.uid,
             userAccountId: user.uid,
         }, { merge: true });
+      } else if (values.role === 'admin') {
+        // Create the admin role document. Its existence grants admin rights.
+        const adminRoleRef = doc(firestore, "roles_admin", user.uid);
+        setDocumentNonBlocking(adminRoleRef, {}, { merge: true });
       }
 
       toast({
         title: "Account Created",
-        description: "Redirecting you to complete your profile.",
+        description: "Redirecting you to your dashboard.",
       });
       router.push('/dashboard');
 
@@ -171,6 +175,14 @@ export function RegisterForm() {
                     </FormControl>
                     <FormLabel className="font-normal">
                       Customer / Employer
+                    </FormLabel>
+                  </FormItem>
+                   <FormItem className="flex items-center space-x-3 space-y-0">
+                    <FormControl>
+                      <RadioGroupItem value="admin" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Admin (For Development)
                     </FormLabel>
                   </FormItem>
                 </RadioGroup>
