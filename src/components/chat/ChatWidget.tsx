@@ -172,7 +172,7 @@ function ChatView({ conversationId }: { conversationId: string }) {
             </form>
           </footer>
         </div>
-        <PriceProposalDialog isOpen={isProposalOpen} setIsOpen={setIsOpen} conversationId={conversationId} />
+        <PriceProposalDialog isOpen={isProposalOpen} setIsOpen={setIsProposalOpen} conversationId={conversationId} />
       </>
     );
 }
