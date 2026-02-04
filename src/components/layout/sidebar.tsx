@@ -18,6 +18,7 @@ import {
   Settings,
   Loader2,
   Users,
+  MessageSquare,
 } from 'lucide-react';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -28,6 +29,7 @@ import { cn } from '@/lib/utils';
 const commonNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/profile', label: 'Profile', icon: User },
+  { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
 ];
 
 const roleNavItems = {

@@ -213,34 +213,46 @@ export default function ChatWidget() {
   const { data: otherUserProfile } = useDoc<UserProfile>(useMemoFirebase(() => otherParticipantId ? doc(firestore, 'userProfiles', otherParticipantId) : null, [firestore, otherParticipantId]));
 
   useEffect(() => {
-    const handleDirectMessage = async () => {
+    const handleUrlTrigger = async () => {
       // Use original `conversations` to check loading state, not the sorted one
       if (!user || !firestore || conversations === null) return;
       const params = new URLSearchParams(window.location.search);
       const otherUserId = params.get('to');
-      if (!otherUserId) return;
+      const openChat = params.get('openChat');
+
+      // Only proceed if there's a trigger param
+      if (!otherUserId && !openChat) return;
 
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
 
-      const existingConvo = conversations.find(c => c.participantIds.includes(otherUserId));
+      if (otherUserId) {
+          const existingConvo = conversations.find(c => c.participantIds.includes(otherUserId));
 
-      if (existingConvo) {
-        setSelectedConversationId(existingConvo.id);
-      } else {
-        const newConversationRef = await addDoc(collection(firestore, 'conversations'), {
-          participantIds: [user.uid, otherUserId].sort(),
-          updatedAt: new Date().toISOString(),
-          lastMessage: '',
-          unreadCounts: { [user.uid]: 0, [otherUserId]: 0 },
-        });
-        setSelectedConversationId(newConversationRef.id);
+          if (existingConvo) {
+            setSelectedConversationId(existingConvo.id);
+          } else {
+            const newConversationRef = await addDoc(collection(firestore, 'conversations'), {
+              participantIds: [user.uid, otherUserId].sort(),
+              updatedAt: new Date().toISOString(),
+              lastMessage: '',
+              unreadCounts: { [user.uid]: 0, [otherUserId]: 0 },
+            });
+            setSelectedConversationId(newConversationRef.id);
+          }
       }
+      
+      if (openChat && !otherUserId) {
+          // If just opening chat, ensure no conversation is selected
+          // so user sees the conversation list.
+          setSelectedConversationId(null);
+      }
+
       setIsOpen(true);
     };
 
     if (user && conversations !== null) {
-      handleDirectMessage();
+      handleUrlTrigger();
     }
   }, [user, firestore, conversations]);
 
