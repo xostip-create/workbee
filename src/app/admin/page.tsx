@@ -17,11 +17,12 @@ import {
   } from '@/components/ui/table';
   import { Badge } from '@/components/ui/badge';
   import { Button } from '@/components/ui/button';
-  import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+  import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
   import { collection, doc, query, where } from 'firebase/firestore';
   import type { WorkerProfile, UserAccount, Job } from '@/types';
-  import { Loader2, Users, Briefcase, DollarSign, UserCheck } from 'lucide-react';
+  import { Loader2, Users, Briefcase, DollarSign, UserCheck, UserCog } from 'lucide-react';
   import { toast } from '@/hooks/use-toast';
+  import { useMemo } from 'react';
   
   function AdminStats() {
     const firestore = useFirestore();
@@ -177,6 +178,84 @@ import {
         </Card>
     )
   }
+
+  function PendingAdminsTable() {
+    const firestore = useFirestore();
+
+    const adminUsersQuery = useMemoFirebase(() => {
+        return query(collection(firestore, 'userAccounts'), where('role', '==', 'admin'));
+    }, [firestore]);
+    const { data: adminUsers, isLoading: isLoadingAdmins } = useCollection<UserAccount>(adminUsersQuery);
+    
+    const approvedAdminsQuery = useMemoFirebase(() => collection(firestore, 'roles_admin'), [firestore]);
+    const { data: approvedAdmins, isLoading: isLoadingApproved } = useCollection(approvedAdminsQuery);
+
+    const pendingAdmins = useMemo(() => {
+        if (!adminUsers || !approvedAdmins) return [];
+        const approvedAdminIds = new Set(approvedAdmins.map(admin => admin.id));
+        return adminUsers.filter(user => !approvedAdminIds.has(user.id));
+    }, [adminUsers, approvedAdmins]);
+
+    const handleApproval = (userId: string) => {
+        if (!userId) return;
+        const adminRoleRef = doc(firestore, 'roles_admin', userId);
+        // Create an empty document. Its existence grants admin rights.
+        setDocumentNonBlocking(adminRoleRef, {}, { merge: false });
+        toast({
+            title: "Admin Approved",
+            description: `User ${userId} has been granted administrator privileges.`,
+        });
+    };
+
+    const isLoading = isLoadingAdmins || isLoadingApproved;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Pending Admin Approvals</CardTitle>
+                <CardDescription>The following users have registered as admins and are waiting for approval.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>User ID</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-center">
+                                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                                </TableCell>
+                            </TableRow>
+                        ) : pendingAdmins.length > 0 ? (
+                            pendingAdmins.map(user => (
+                                <TableRow key={user.id}>
+                                    <TableCell className="font-medium">{user.id}</TableCell>
+                                    <TableCell>{user.email}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="outline" size="sm" onClick={() => handleApproval(user.id)}>
+                                            <UserCog className="mr-2 h-4 w-4" />
+                                            Approve Admin
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-center">No pending admin approvals.</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
+}
+
   
   export default function AdminPage() {
     return (
@@ -186,8 +265,8 @@ import {
           <p className="text-muted-foreground">Oversee and manage the E&F WorkBee platform.</p>
         </div>
         <AdminStats />
+        <PendingAdminsTable />
         <PendingWorkersTable />
       </div>
     );
   }
-  

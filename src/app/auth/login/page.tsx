@@ -1,6 +1,7 @@
 import { Header } from '@/components/layout/header';
 import { LoginForm } from '@/components/auth/login-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 
 export default function LoginPage() {
   return (
@@ -14,6 +15,11 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <LoginForm />
+            <div className="mt-4 text-center text-sm">
+                <Link href="/auth/register-admin" className="underline text-muted-foreground">
+                    Register as an admin
+                </Link>
+            </div>
           </CardContent>
         </Card>
       </main>
