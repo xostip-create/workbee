@@ -147,7 +147,7 @@ export default function MessagesPage() {
             </footer>
         </div>
     </div>
-    <PriceProposalDialog isOpen={isProposalOpen} setIsOpen={setIsOpen} conversationId="conv1" />
+    <PriceProposalDialog isOpen={isProposalOpen} setIsOpen={setIsProposalOpen} conversationId="conv1" />
     </>
   );
 }
