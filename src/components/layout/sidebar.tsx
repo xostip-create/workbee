@@ -15,9 +15,10 @@ import {
   Briefcase,
   Search,
   MessageSquare,
-  ShieldCheck,
+  Activity,
   Settings,
   Loader2,
+  Users,
 } from 'lucide-react';
 import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -37,7 +38,11 @@ const roleNavItems = {
     { href: '/dashboard/jobs', label: 'My Jobs', icon: Briefcase },
     { href: '/dashboard/search', label: 'Search Workers', icon: Search },
   ],
-  admin: [{ href: '/admin', label: 'Approvals', icon: ShieldCheck }],
+  admin: [
+    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/users', label: 'Users', icon: Users },
+    { href: '/admin/analytics', label: 'Analytics', icon: Activity },
+  ],
 };
 
 export function AppSidebar({ isMobile = false }: { isMobile?: boolean }) {
