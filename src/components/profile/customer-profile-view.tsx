@@ -4,7 +4,7 @@
 import type { CustomerProfile, UserProfile, Job } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, Verified, Briefcase, MessageSquare } from 'lucide-react';
+import { Star, Verified, Briefcase, MessageSquare, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -35,6 +35,12 @@ export function CustomerProfileView({ userProfile, customerProfile, jobs }: Cust
               {customerProfile.isVerified && <Verified className="h-6 w-6 text-primary" />}
             </div>
             <p className="text-muted-foreground">Customer</p>
+             {userProfile.address && (
+                <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1">
+                    <MapPin className="h-4 w-4" />
+                    {userProfile.address}
+                </p>
+            )}
             <div className="mt-4 flex items-center gap-1">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                 <span className="font-bold">{(customerProfile.averageRating || 0).toFixed(1)}</span>

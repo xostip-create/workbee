@@ -11,14 +11,15 @@ import type { UserProfile, WorkerProfile } from '@/types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, MapPin } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const profileSchema = z.object({
   fullName: z.string().min(1, "Full name is required."),
+  address: z.string().min(1, "Address is required so workers can find you."),
   skills: z.string().optional(),
   availability: z.string().optional(),
   bio: z.string().optional(),
@@ -35,12 +36,11 @@ export default function ProfilePage() {
   const { data: userProfile, isLoading: isLoadingUser } = useDoc<UserProfile>(userProfileRef);
   const { data: workerProfile, isLoading: isLoadingWorker } = useDoc<WorkerProfile>(workerProfileRef);
 
-  const [isLocating, setIsLocating] = useState(false);
-
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       fullName: '',
+      address: '',
       skills: '',
       availability: '',
       bio: '',
@@ -52,6 +52,7 @@ export default function ProfilePage() {
     if (userProfile) {
       form.setValue('fullName', userProfile.fullName);
       form.setValue('bio', userProfile.bio || '');
+      form.setValue('address', userProfile.address || '');
     }
     if (workerProfile) {
         form.setValue('skills', workerProfile.skillCategoryIds?.join(', '));
@@ -60,42 +61,16 @@ export default function ProfilePage() {
     }
   }, [userProfile, workerProfile, form]);
 
-  const handleLocation = () => {
-    if (!navigator.geolocation) {
-        toast({ variant: "destructive", title: "Geolocation is not supported by your browser." });
-        return;
-    }
-    
-    setIsLocating(true);
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        if (userProfileRef) {
-            // In a real app, you might use a reverse geocoding service here.
-            const address = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
-            updateDocumentNonBlocking(userProfileRef, { 
-                locationLatitude: latitude, 
-                locationLongitude: longitude,
-                address: address
-            });
-            toast({ title: "Location Updated" });
-        }
-        setIsLocating(false);
-      },
-      () => {
-        toast({ variant: "destructive", title: "Unable to retrieve your location." });
-        setIsLocating(false);
-      }
-    );
-  };
-
   const onSubmit = (values: z.infer<typeof profileSchema>) => {
     if (!user) return;
 
     // Update UserProfile
     if (userProfileRef) {
-        updateDocumentNonBlocking(userProfileRef, { fullName: values.fullName, bio: values.bio });
+        updateDocumentNonBlocking(userProfileRef, { 
+          fullName: values.fullName, 
+          bio: values.bio,
+          address: values.address,
+        });
     }
 
     // Update WorkerProfile if it exists
@@ -150,17 +125,22 @@ export default function ProfilePage() {
                             <Input id="email" type="email" defaultValue={user?.email || ''} disabled />
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="address">Address</Label>
-                        <div className="flex items-center gap-2">
-                            <Input id="address" value={userProfile?.address || "No location set"} disabled />
-                            <Button type="button" variant="outline" size="icon" onClick={handleLocation} disabled={isLocating}>
-                                {isLocating ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
-                                <span className="sr-only">Get Current Location</span>
-                            </Button>
-                        </div>
-                        <p className="text-sm text-muted-foreground">Use your current location to appear in searches.</p>
-                    </div>
+                     <FormField
+                        control={form.control}
+                        name="address"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Address</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., 123 Main St, Lagos" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                    Your full address is needed for workers to find you.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                     
                     {workerProfile && (
                         <>
