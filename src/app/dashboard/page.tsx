@@ -30,13 +30,14 @@ import {
   import { Button } from '@/components/ui/button';
   import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
   import { useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
-  import { doc, collection, query, where } from 'firebase/firestore';
+  import { doc, collection, query, where, documentId } from 'firebase/firestore';
   import { useFirestore } from '@/firebase/provider';
-  import type { UserAccount, WorkerProfile, Job, JobApplication, JobPosting } from '@/types';
+  import type { UserAccount, WorkerProfile, Job, JobApplication, JobPosting, UserProfile } from '@/types';
   import { Loader2 } from 'lucide-react';
   import { useRouter } from 'next/navigation';
   import { useEffect, useMemo } from 'react';
   import { formatDistanceToNow } from 'date-fns';
+  import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const WorkerDashboard = () => {
     const { user } = useUser();
@@ -253,12 +254,28 @@ const CustomerDashboard = () => {
     }, [firestore, user]);
     const { data: openPostings, isLoading: isLoadingOpenPostings } = useCollection<JobPosting>(openPostingsQuery);
 
+    // Fetch profiles of workers in active jobs
+    const workerIdsInActiveJobs = useMemo(() => activeJobs?.map(job => job.workerId) || [], [activeJobs]);
+    const workerProfilesQuery = useMemoFirebase(() => {
+        if (!firestore || workerIdsInActiveJobs.length === 0) return null;
+        // Firestore 'in' query is limited to 30 values.
+        return query(collection(firestore, 'userProfiles'), where(documentId(), 'in', workerIdsInActiveJobs.slice(0, 30)));
+    }, [firestore, workerIdsInActiveJobs]);
+    const { data: workerProfiles, isLoading: isLoadingWorkerProfiles } = useCollection<UserProfile>(workerProfilesQuery);
+    
+    // Create a map for easy lookup of worker names and avatars
+    const workerProfilesMap = useMemo(() => {
+        if (!workerProfiles) return new Map();
+        return new Map(workerProfiles.map(profile => [profile.id, profile]));
+    }, [workerProfiles]);
+
+
     const totalSpent = useMemo(() => completedJobs?.reduce((sum, job) => sum + job.totalAmount, 0) || 0, [completedJobs]);
     const jobsCompletedCount = completedJobs?.length || 0;
     const activeJobsCount = activeJobs?.length || 0;
     const openPostingsCount = openPostings?.length || 0;
 
-    const isLoading = isLoadingCompleted || isLoadingActive || isLoadingOpenPostings;
+    const isLoading = isLoadingCompleted || isLoadingActive || isLoadingOpenPostings || isLoadingWorkerProfiles;
 
     if (isLoading) {
         return (
@@ -299,6 +316,16 @@ const CustomerDashboard = () => {
                         <p className="text-xs text-muted-foreground">Jobs currently in progress</p>
                     </CardContent>
                 </Card>
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Jobs Completed</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{jobsCompletedCount}</div>
+                        <p className="text-xs text-muted-foreground">All-time jobs completed</p>
+                    </CardContent>
+                </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Open Job Postings</CardTitle>
@@ -310,6 +337,102 @@ const CustomerDashboard = () => {
                     </CardContent>
                 </Card>
             </div>
+             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Active Jobs</CardTitle>
+                        <CardDescription>Jobs you've hired for that are in progress.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                       <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Job</TableHead>
+                                    <TableHead>Worker</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead className="text-right">Action</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoadingActive || isLoadingWorkerProfiles ? (
+                                    <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="animate-spin mx-auto"/></TableCell></TableRow>
+                                ) : activeJobs && activeJobs.length > 0 ? (
+                                    activeJobs.map(job => {
+                                        const worker = workerProfilesMap.get(job.workerId);
+                                        return (
+                                            <TableRow key={job.id}>
+                                                <TableCell className="font-medium max-w-[150px] truncate">{job.title}</TableCell>
+                                                <TableCell>
+                                                    {worker ? (
+                                                        <Link href={`/profile/${worker.id}`} className="flex items-center gap-2 hover:underline">
+                                                             <Avatar className="h-6 w-6">
+                                                                <AvatarImage src={worker.profilePhoto} />
+                                                                <AvatarFallback>{worker.fullName?.[0]}</AvatarFallback>
+                                                            </Avatar>
+                                                            <span>{worker.fullName}</span>
+                                                        </Link>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">Loading...</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>₦{job.price.toLocaleString()}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="outline" size="sm" asChild>
+                                                        <Link href={`/dashboard/messages?to=${job.workerId}`}>Chat</Link>
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center h-24">No active jobs.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Recent Open Postings</CardTitle>
+                        <CardDescription>Your jobs that are currently open for applications.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Title</TableHead>
+                                    <TableHead>Posted</TableHead>
+                                    <TableHead className="text-right">Action</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoadingOpenPostings ? (
+                                     <TableRow><TableCell colSpan={3} className="text-center h-24"><Loader2 className="animate-spin mx-auto"/></TableCell></TableRow>
+                                ) : openPostings && openPostings.length > 0 ? (
+                                    openPostings.slice(0, 5).map(posting => (
+                                        <TableRow key={posting.id}>
+                                            <TableCell className="font-medium max-w-[200px] truncate">{posting.title}</TableCell>
+                                            <TableCell className="text-muted-foreground">{formatDistanceToNow(new Date(posting.createdAt), { addSuffix: true })}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <Link href={`/dashboard/jobs/${posting.id}`}>View</Link>
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center h-24">No open job postings.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+             </div>
         </div>
     );
 };
