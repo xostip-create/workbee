@@ -7,6 +7,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/sidebar';
 import { DashboardHeader } from '@/components/layout/dashboard-header';
 import { Loader2 } from 'lucide-react';
+import ChatWidget from '@/components/chat/ChatWidget';
 
 export default function DashboardLayout({
   children,
@@ -39,6 +40,7 @@ export default function DashboardLayout({
             <main className="flex-1 gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
                 {children}
             </main>
+            <ChatWidget />
         </div>
       </div>
     </SidebarProvider>

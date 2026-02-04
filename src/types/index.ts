@@ -63,6 +63,7 @@ export interface Conversation {
     participantIds: string[];
     lastMessage?: string;
     updatedAt: string; // ISO date string
+    unreadCounts?: { [key: string]: number };
 }
 
 export interface ChatMessage {

@@ -14,7 +14,6 @@ import {
   User,
   Briefcase,
   Search,
-  MessageSquare,
   Activity,
   Settings,
   Loader2,
@@ -29,7 +28,6 @@ import { cn } from '@/lib/utils';
 const commonNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/profile', label: 'Profile', icon: User },
-  { href: '/dashboard/messages', label: 'Messages', icon: MessageSquare },
 ];
 
 const roleNavItems = {
@@ -58,18 +56,13 @@ export function AppSidebar({ isMobile = false }: { isMobile?: boolean }) {
   const { data: userAccount, isLoading } = useDoc<UserAccount>(userAccountRef);
 
   const userRole = userAccount?.role || 'customer';
-  const navItems = [...commonNavItems, ...(roleNavItems[userRole] || [])]
-    .filter(item => {
-      // Hide messages for admin
-      if (userRole === 'admin' && item.href === '/dashboard/messages') {
-        return false;
-      }
-      // Hide the redundant dashboard link for admin, since they have the /admin link
-      if (userRole === 'admin' && item.href === '/dashboard') {
-        return false;
-      }
-      return true;
-    });
+  let navItems = [];
+
+  if (userRole === 'admin') {
+      navItems = roleNavItems.admin;
+  } else {
+      navItems = [...commonNavItems, ...(roleNavItems[userRole] || [])];
+  }
 
 
   const sidebarContent = (
