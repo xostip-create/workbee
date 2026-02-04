@@ -38,6 +38,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 function ConversationListItem({
   conversation,
@@ -181,20 +182,28 @@ export default function ChatWidget() {
   const { user } = useUser();
   const firestore = useFirestore();
 
+  // FIX: Remove orderBy to prevent missing index error. Sorting is now done on the client.
   const conversationsQuery = useMemoFirebase(
-    () => (user ? query(collection(firestore, 'conversations'), where('participantIds', 'array-contains', user.uid), orderBy('updatedAt', 'desc')) : null),
+    () => (user ? query(collection(firestore, 'conversations'), where('participantIds', 'array-contains', user.uid)) : null),
     [user, firestore]
   );
   const { data: conversations, isLoading } = useCollection<Conversation>(conversationsQuery);
 
+  // Sort conversations on the client-side since orderBy was removed from the query
+  const sortedConversations = useMemo(() => {
+    if (!conversations) return [];
+    return [...conversations].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [conversations]);
+
+
   const totalUnreadCount = useMemo(() => {
-    if (!conversations || !user) return 0;
-    return conversations.reduce((sum, convo) => sum + (convo.unreadCounts?.[user.uid] || 0), 0);
-  }, [conversations, user]);
+    if (!sortedConversations || !user) return 0;
+    return sortedConversations.reduce((sum, convo) => sum + (convo.unreadCounts?.[user.uid] || 0), 0);
+  }, [sortedConversations, user]);
 
   const selectedConversation = useMemo(() => {
-    return conversations?.find(c => c.id === selectedConversationId);
-  }, [conversations, selectedConversationId]);
+    return sortedConversations?.find(c => c.id === selectedConversationId);
+  }, [sortedConversations, selectedConversationId]);
 
   const otherParticipantId = useMemo(() => {
     if (!selectedConversation || !user) return null;
@@ -205,7 +214,8 @@ export default function ChatWidget() {
 
   useEffect(() => {
     const handleDirectMessage = async () => {
-      if (!user || !firestore || !conversations) return;
+      // Use original `conversations` to check loading state, not the sorted one
+      if (!user || !firestore || conversations === null) return;
       const params = new URLSearchParams(window.location.search);
       const otherUserId = params.get('to');
       if (!otherUserId) return;
@@ -236,7 +246,7 @@ export default function ChatWidget() {
 
   const handleSelectConversation = (id: string) => {
     setSelectedConversationId(id);
-    const conversation = conversations?.find((c) => c.id === id);
+    const conversation = sortedConversations?.find((c) => c.id === id);
     if (user?.uid && conversation) {
       const unreadCount = conversation.unreadCounts?.[user.uid] || 0;
       if (unreadCount > 0) {
@@ -288,8 +298,8 @@ export default function ChatWidget() {
               <nav className="grid gap-1 p-2">
                 {isLoading ? (
                   <Loader2 className="mx-auto my-4 animate-spin" />
-                ) : conversations && conversations.length > 0 ? (
-                  conversations.map((convo) => (
+                ) : sortedConversations && sortedConversations.length > 0 ? (
+                  sortedConversations.map((convo) => (
                     <ConversationListItem
                       key={convo.id}
                       conversation={convo}
