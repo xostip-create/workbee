@@ -8,22 +8,35 @@ import {
     CardTitle,
   } from '@/components/ui/card';
   import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from '@/components/ui/table';
+  import { Badge } from '@/components/ui/badge';
+  import {
     DollarSign,
-    Users,
     Activity,
     AlertCircle,
     Briefcase,
+    Search,
+    CheckCircle,
+    FileText,
+    PlusCircle,
   } from 'lucide-react';
   import Link from 'next/link';
   import { Button } from '@/components/ui/button';
   import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-  import { useDoc, useMemoFirebase, useUser } from '@/firebase';
-  import { doc } from 'firebase/firestore';
+  import { useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
+  import { doc, collection, query, where } from 'firebase/firestore';
   import { useFirestore } from '@/firebase/provider';
-  import type { UserAccount, WorkerProfile } from '@/types';
+  import type { UserAccount, WorkerProfile, Job, JobApplication, JobPosting } from '@/types';
   import { Loader2 } from 'lucide-react';
   import { useRouter } from 'next/navigation';
-  import { useEffect } from 'react';
+  import { useEffect, useMemo } from 'react';
+  import { formatDistanceToNow } from 'date-fns';
 
 const WorkerDashboard = () => {
     const { user } = useUser();
@@ -31,85 +44,235 @@ const WorkerDashboard = () => {
 
     const workerProfileRef = useMemoFirebase(() => {
         if (!firestore || !user) return null;
-        // This assumes the workerProfile ID is the same as the user UID
         return doc(firestore, 'workerProfiles', user.uid);
     }, [firestore, user]);
+    const { data: workerProfile, isLoading: isLoadingProfile } = useDoc<WorkerProfile>(workerProfileRef);
 
-    const { data: workerProfile, isLoading } = useDoc<WorkerProfile>(workerProfileRef);
+    const completedJobsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'jobs'), where('workerId', '==', user.uid), where('status', '==', 'Completed'));
+    }, [firestore, user]);
+    const { data: completedJobs, isLoading: isLoadingCompleted } = useCollection<Job>(completedJobsQuery);
+
+    const activeJobsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'jobs'), where('workerId', '==', user.uid), where('status', '==', 'PaymentSecured'));
+    }, [firestore, user]);
+    const { data: activeJobs, isLoading: isLoadingActive } = useCollection<Job>(activeJobsQuery);
+
+    const applicationsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'jobApplications'), where('workerId', '==', user.uid));
+    }, [firestore, user]);
+    const { data: applications, isLoading: isLoadingApps } = useCollection<JobApplication>(applicationsQuery);
+
+    const totalEarnings = useMemo(() => completedJobs?.reduce((sum, job) => sum + job.price, 0) || 0, [completedJobs]);
+    const jobsCompletedCount = completedJobs?.length || 0;
+    const activeJobsCount = activeJobs?.length || 0;
+    const pendingApplicationsCount = useMemo(() => applications?.filter(app => app.status === 'pending').length || 0, [applications]);
+
+    const isLoading = isLoadingProfile || isLoadingCompleted || isLoadingActive || isLoadingApps;
 
     if (isLoading) {
-        return <Loader2 className="h-6 w-6 animate-spin" />;
+        return (
+            <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        )
     }
-      
+
+    const RecentApplications = () => (
+        <Card>
+            <CardHeader>
+                <CardTitle>Recent Job Applications</CardTitle>
+                <CardDescription>The status of your recent applications.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Job ID</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Date Applied</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {applications && applications.length > 0 ? (
+                            applications.slice(0, 5).map(app => (
+                                <TableRow key={app.id}>
+                                    <TableCell className="font-mono text-xs truncate max-w-xs">{app.jobPostingId}</TableCell>
+                                    <TableCell><Badge variant={app.status === 'accepted' ? 'default' : app.status === 'pending' ? 'outline' : 'destructive'} className="capitalize">{app.status}</Badge></TableCell>
+                                    <TableCell>{formatDistanceToNow(new Date(app.createdAt), { addSuffix: true })}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="outline" size="sm" asChild>
+                                            <Link href={`/dashboard/jobs/${app.jobPostingId}`}>View Job</Link>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center py-10">No applications yet.</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
+
     return (
-        <>
-          {workerProfile?.status === 'Pending Approval' && (
-            <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Verification Pending</AlertTitle>
-                <AlertDescription>
-                    Your profile is under review. We'll notify you once it's approved. You can complete your profile details in the meantime by visiting the <Link href="/dashboard/profile" className="font-bold underline">Profile</Link> page.
-                </AlertDescription>
-            </Alert>
-          )}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">$0.00</div>
-                    <p className="text-xs text-muted-foreground">No earnings yet</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Jobs Completed</CardTitle>
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">0</div>
-                    <p className="text-xs text-muted-foreground">No jobs completed</p>
-                </CardContent>
-            </Card>
-          </div>
-        </>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between space-y-2">
+                <h1 className="text-3xl font-bold tracking-tight">Worker Dashboard</h1>
+                <Button asChild>
+                    <Link href="/dashboard/jobs">
+                        <Search className="mr-2 h-4 w-4" /> Find Jobs
+                    </Link>
+                </Button>
+            </div>
+
+            {workerProfile?.status === 'Pending Approval' && (
+                <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Verification Pending</AlertTitle>
+                    <AlertDescription>
+                        Your profile is under review. You can browse jobs, but you won't be able to apply until approved. You can complete your profile details in the meantime by visiting the <Link href="/dashboard/profile" className="font-bold underline">Profile</Link> page.
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">₦{totalEarnings.toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground">From {jobsCompletedCount} completed jobs</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
+                        <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{activeJobsCount}</div>
+                        <p className="text-xs text-muted-foreground">Jobs currently in progress</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Jobs Completed</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">+{jobsCompletedCount}</div>
+                        <p className="text-xs text-muted-foreground">All-time completed jobs</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Pending Applications</CardTitle>
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{pendingApplicationsCount}</div>
+                        <p className="text-xs text-muted-foreground">Awaiting customer response</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <RecentApplications />
+        </div>
     );
 };
   
-const CustomerDashboard = () => (
-    <>
-      <div className="flex items-center justify-between space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <Button asChild>
-            <Link href="/dashboard/jobs/new">Post a New Job</Link>
-          </Button>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">$0.00</div>
-                <p className="text-xs text-muted-foreground">No jobs posted yet</p>
-            </CardContent>
-        </Card>
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-                <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">No active jobs</p>
-            </CardContent>
-        </Card>
-      </div>
-    </>
-);
+const CustomerDashboard = () => {
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    const completedJobsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'jobs'), where('customerId', '==', user.uid), where('status', '==', 'Completed'));
+    }, [firestore, user]);
+    const { data: completedJobs, isLoading: isLoadingCompleted } = useCollection<Job>(completedJobsQuery);
+
+    const activeJobsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'jobs'), where('customerId', '==', user.uid), where('status', '==', 'PaymentSecured'));
+    }, [firestore, user]);
+    const { data: activeJobs, isLoading: isLoadingActive } = useCollection<Job>(activeJobsQuery);
+
+    const openPostingsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'jobPostings'), where('customerId', '==', user.uid), where('status', '==', 'open'));
+    }, [firestore, user]);
+    const { data: openPostings, isLoading: isLoadingOpenPostings } = useCollection<JobPosting>(openPostingsQuery);
+
+    const totalSpent = useMemo(() => completedJobs?.reduce((sum, job) => sum + job.totalAmount, 0) || 0, [completedJobs]);
+    const jobsCompletedCount = completedJobs?.length || 0;
+    const activeJobsCount = activeJobs?.length || 0;
+    const openPostingsCount = openPostings?.length || 0;
+
+    const isLoading = isLoadingCompleted || isLoadingActive || isLoadingOpenPostings;
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between space-y-2">
+                <h1 className="text-3xl font-bold tracking-tight">Customer Dashboard</h1>
+                <Button asChild>
+                    <Link href="/dashboard/jobs/new">
+                        <PlusCircle className="mr-2 h-4 w-4" /> Post a New Job
+                    </Link>
+                </Button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">₦{totalSpent.toLocaleString()}</div>
+                        <p className="text-xs text-muted-foreground">On {jobsCompletedCount} completed jobs</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
+                        <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{activeJobsCount}</div>
+                        <p className="text-xs text-muted-foreground">Jobs currently in progress</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Open Job Postings</CardTitle>
+                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{openPostingsCount}</div>
+                        <p className="text-xs text-muted-foreground">Awaiting applications</p>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+};
 
 export default function DashboardPage() {
     const { user } = useUser();
