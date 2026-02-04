@@ -53,7 +53,19 @@ export function AppSidebar({ isMobile = false }: { isMobile?: boolean }) {
   const { data: userAccount, isLoading } = useDoc<UserAccount>(userAccountRef);
 
   const userRole = userAccount?.role || 'customer';
-  const navItems = [...commonNavItems, ...(roleNavItems[userRole] || [])];
+  const navItems = [...commonNavItems, ...(roleNavItems[userRole] || [])]
+    .filter(item => {
+      // Hide messages for admin
+      if (userRole === 'admin' && item.href === '/dashboard/messages') {
+        return false;
+      }
+      // Hide the redundant dashboard link for admin, since they have the /admin link
+      if (userRole === 'admin' && item.href === '/dashboard') {
+        return false;
+      }
+      return true;
+    });
+
 
   const sidebarContent = (
     <>
