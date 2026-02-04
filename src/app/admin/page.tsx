@@ -17,12 +17,13 @@ import {
   } from '@/components/ui/table';
   import { Badge } from '@/components/ui/badge';
   import { Button } from '@/components/ui/button';
-  import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+  import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, setDocumentNonBlocking, useDoc } from '@/firebase';
   import { collection, doc, query, where } from 'firebase/firestore';
-  import type { WorkerProfile, UserAccount, Job } from '@/types';
+  import type { WorkerProfile, UserAccount, Job, AppSettings } from '@/types';
   import { Loader2, Users, Briefcase, DollarSign, UserCheck, UserCog } from 'lucide-react';
   import { toast } from '@/hooks/use-toast';
   import { useMemo } from 'react';
+  import { Switch } from '@/components/ui/switch';
   
   function AdminStats() {
     const firestore = useFirestore();
@@ -256,6 +257,51 @@ import {
     );
 }
 
+  function SignupSettings() {
+    const firestore = useFirestore();
+    const settingsRef = useMemoFirebase(() => doc(firestore, 'appSettings', 'general'), [firestore]);
+    const { data: settings, isLoading } = useDoc<AppSettings>(settingsRef);
+
+    const handleToggle = (enabled: boolean) => {
+        // Use set with merge to create the doc if it doesn't exist
+        setDocumentNonBlocking(settingsRef, { signupEnabled: enabled }, { merge: true });
+        toast({
+            title: 'Settings Updated',
+            description: `User signups have been ${enabled ? 'enabled' : 'disabled'}.`,
+        });
+    };
+
+    if (isLoading) {
+        return <Card><CardHeader><CardTitle>Platform Settings</CardTitle></CardHeader><CardContent><Loader2 className="animate-spin" /></CardContent></Card>
+    }
+
+    // Default to true if settings doc doesn't exist yet
+    const signupEnabled = settings?.signupEnabled ?? true;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Platform Settings</CardTitle>
+                <CardDescription>Manage global settings for the application.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                        <h3 className="font-medium">Enable User Signups</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Allow new users (workers and customers) to register.
+                        </p>
+                    </div>
+                    <Switch
+                        checked={signupEnabled}
+                        onCheckedChange={handleToggle}
+                        aria-label="Toggle user signups"
+                    />
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
   
   export default function AdminPage() {
     return (
@@ -265,6 +311,7 @@ import {
           <p className="text-muted-foreground">Oversee and manage the E&F WorkBee platform.</p>
         </div>
         <AdminStats />
+        <SignupSettings />
         <PendingAdminsTable />
         <PendingWorkersTable />
       </div>

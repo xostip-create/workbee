@@ -117,4 +117,7 @@ export interface JobApplication {
     createdAt: string; // ISO date string
 }
 
-    
+export interface AppSettings {
+    id: 'general';
+    signupEnabled: boolean;
+}

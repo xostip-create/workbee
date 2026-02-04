@@ -211,6 +211,18 @@ service cloud.firestore {
       allow update: if isExistingDoc() && isAdmin();
       allow delete: if isExistingDoc() && isAdmin();
     }
+    
+    /**
+     * @description Global application settings, managed by admins.
+     * @path        /appSettings/{settingId}
+     * @allow       (get, list) Any user can read settings.
+     * @deny        (write) A regular user trying to change settings.
+     * @principle   Public read access for configuration, with admin-only writes.
+     */
+    match /appSettings/{settingId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
 
     /**
      * @description Chat conversations between users.
