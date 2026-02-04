@@ -1,27 +1,16 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
-// --- Singleton Pattern ---
-// This ensures Firebase is initialized only once, regardless of how many
-// times this module is imported. This is crucial for Next.js build environments.
-
-const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const auth: Auth = getAuth(app);
-const firestore: Firestore = getFirestore(app);
-
-// -------------------------
-
-// This function now simply returns the already-initialized services.
-export function initializeFirebase() {
-  return {
-    firebaseApp: app,
-    auth: auth,
-    firestore: firestore,
-  };
+// A function to initialize and get Firebase services, ensuring it only happens once.
+export function initializeFirebase(): { firebaseApp: FirebaseApp; auth: Auth; firestore: Firestore } {
+  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const firestore = getFirestore(app);
+  return { firebaseApp: app, auth, firestore };
 }
 
 // This function is now redundant, but kept for compatibility if other parts of the code use it.
@@ -33,6 +22,8 @@ export function getSdks(firebaseApp: FirebaseApp) {
   };
 }
 
+
+// Re-export other necessary modules
 export * from './provider';
 export * from './client-provider';
 export * from './firestore/use-collection';
