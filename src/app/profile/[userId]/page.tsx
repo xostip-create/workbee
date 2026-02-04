@@ -2,9 +2,9 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { UserAccount, UserProfile, WorkerProfile, CustomerProfile } from '@/types';
+import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query, where } from 'firebase/firestore';
+import type { UserAccount, UserProfile, WorkerProfile, CustomerProfile, Job } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { WorkerProfileView } from '@/components/profile/worker-profile-view';
@@ -39,6 +39,14 @@ export default function UserProfilePage() {
   const customerProfileRef = useMemoFirebase(() => (userAccount?.role === 'customer' && userId) ? doc(firestore, 'customerProfiles', userId) : null, [firestore, userId, userAccount]);
   const { data: customerProfile, isLoading: isLoadingCustomer } = useDoc<CustomerProfile>(customerProfileRef);
   
+  const customerJobsQuery = useMemoFirebase(() => 
+    (userAccount?.role === 'customer' && userId) 
+      ? query(collection(firestore, 'jobs'), where('customerId', '==', userId), where('status', '==', 'Completed')) 
+      : null, 
+    [firestore, userId, userAccount]
+  );
+  const { data: customerJobs, isLoading: isLoadingCustomerJobs } = useCollection<Job>(customerJobsQuery);
+
   const distance = useMemo(() => {
     if (!currentUserProfile || !userProfile || !currentUserProfile.locationLatitude || !currentUserProfile.locationLongitude || !userProfile.locationLatitude || !userProfile.locationLongitude) {
         return null;
@@ -47,7 +55,7 @@ export default function UserProfilePage() {
   }, [currentUserProfile, userProfile]);
 
 
-  const isLoading = isCurrentUserLoading || isLoadingCurrentUserProfile || isLoadingAccount || isLoadingProfile || isLoadingWorker || isLoadingCustomer || isAdminRoleLoading;
+  const isLoading = isCurrentUserLoading || isLoadingCurrentUserProfile || isLoadingAccount || isLoadingProfile || isLoadingWorker || isLoadingCustomer || isAdminRoleLoading || isLoadingCustomerJobs;
 
   const renderContent = () => {
     if (isLoading) {
@@ -86,7 +94,7 @@ export default function UserProfilePage() {
     }
 
     if (userAccount.role === 'customer' && customerProfile) {
-      return <CustomerProfileView userProfile={userProfile} customerProfile={customerProfile} />;
+      return <CustomerProfileView userProfile={userProfile} customerProfile={customerProfile} jobs={customerJobs || []} />;
     }
 
     return (
@@ -107,5 +115,6 @@ export default function UserProfilePage() {
     </div>
   );
 }
+
 
 
