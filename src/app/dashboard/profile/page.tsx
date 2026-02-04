@@ -15,10 +15,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { toast } from '@/hooks/use-toast';
 import { Loader2, MapPin } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const profileSchema = z.object({
   fullName: z.string().min(1, "Full name is required."),
-  // For simplicity, skills are a comma-separated string.
   skills: z.string().optional(),
   availability: z.string().optional(),
   bio: z.string().optional(),
@@ -54,8 +54,6 @@ export default function ProfilePage() {
       form.setValue('bio', userProfile.bio || '');
     }
     if (workerProfile) {
-        // Assuming skillCategoryIds is an array of IDs, we'll join them.
-        // In a real app, you'd fetch the skill names.
         form.setValue('skills', workerProfile.skillCategoryIds?.join(', '));
         form.setValue('availability', workerProfile.availability);
         form.setValue('videoUrl', workerProfile.videoUrl || '');
@@ -122,7 +120,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
         <div>
             <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
             <p className="text-muted-foreground">Manage your account and profile settings.</p>
@@ -172,9 +170,15 @@ export default function ProfilePage() {
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Skills</FormLabel>
-                                    <FormControl><Input {...field} placeholder="e.g., Plumbing, Electrical"/></FormControl>
+                                    <FormControl>
+                                        <Textarea 
+                                            {...field} 
+                                            placeholder="Plumbing, Electrical, Painting, etc." 
+                                            className="min-h-[100px]"
+                                        />
+                                    </FormControl>
                                     <FormMessage />
-                                    <p className="text-sm text-muted-foreground">Add skills separated by commas.</p>
+                                    <p className="text-sm text-muted-foreground">Enter each skill separated by a comma.</p>
                                 </FormItem>
                                 )}
                             />
@@ -184,7 +188,20 @@ export default function ProfilePage() {
                                 render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Availability</FormLabel>
-                                    <FormControl><Input {...field} placeholder="e.g., Weekdays, 9am-5pm" /></FormControl>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select your availability" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Full-time (Weekdays)">Full-time (Weekdays)</SelectItem>
+                                            <SelectItem value="Part-time (Weekends)">Part-time (Weekends)</SelectItem>
+                                            <SelectItem value="Part-time (Evenings)">Part-time (Evenings)</SelectItem>
+                                            <SelectItem value="Flexible">Flexible</SelectItem>
+                                            <SelectItem value="Available on demand">Available on demand</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                     <FormMessage />
                                 </FormItem>
                                 )}
