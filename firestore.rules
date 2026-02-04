@@ -247,7 +247,7 @@ service cloud.firestore {
       allow read: if isConversationParticipant() || isAdmin();
       allow create: if isConversationParticipant() && request.resource.data.senderId == request.auth.uid;
       // Allow participants or admins to update proposal status
-      allow update: if (isConversationParticipant() || isAdmin()) && isExistingDoc();
+      allow update: if isConversationParticipant() || isAdmin();
       allow delete: if isAdmin();
     }
     
@@ -315,3 +315,4 @@ service cloud.firestore {
 
   }
 }
+    
