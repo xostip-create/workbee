@@ -132,7 +132,6 @@ import {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Worker User ID</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Availability</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -141,14 +140,13 @@ import {
               <TableBody>
                 {isLoading ? (
                     <TableRow>
-                        <TableCell colSpan={4} className="text-center">
+                        <TableCell colSpan={3} className="text-center">
                             <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                         </TableCell>
                     </TableRow>
                 ) : pendingUsers && pendingUsers.length > 0 ? (
                     pendingUsers.map(user => (
                     <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.userAccountId}</TableCell>
                         <TableCell>
                         <Badge variant="outline" className="capitalize">{user.status}</Badge>
                         </TableCell>
@@ -170,7 +168,7 @@ import {
                     ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={4} className="text-center">No pending approvals.</TableCell>
+                        <TableCell colSpan={3} className="text-center">No pending approvals.</TableCell>
                     </TableRow>
                 )}
               </TableBody>
