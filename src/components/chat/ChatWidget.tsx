@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   useUser,
   useFirestore,
@@ -171,7 +172,7 @@ function ChatView({ conversationId }: { conversationId: string }) {
             </form>
           </footer>
         </div>
-        <PriceProposalDialog isOpen={isProposalOpen} setIsOpen={setIsProposalOpen} conversationId={conversationId} />
+        <PriceProposalDialog isOpen={isProposalOpen} setIsOpen={setIsOpen} conversationId={conversationId} />
       </>
     );
 }
@@ -181,6 +182,9 @@ export default function ChatWidget() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const { user } = useUser();
   const firestore = useFirestore();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
 
   // FIX: Remove orderBy to prevent missing index error. Sorting is now done on the client.
   const conversationsQuery = useMemoFirebase(
@@ -216,15 +220,15 @@ export default function ChatWidget() {
     const handleUrlTrigger = async () => {
       // Use original `conversations` to check loading state, not the sorted one
       if (!user || !firestore || conversations === null) return;
-      const params = new URLSearchParams(window.location.search);
-      const otherUserId = params.get('to');
-      const openChat = params.get('openChat');
+      
+      const otherUserId = searchParams.get('to');
+      const openChat = searchParams.get('openChat');
 
       // Only proceed if there's a trigger param
       if (!otherUserId && !openChat) return;
 
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
+      // Clean the URL params by replacing the current history entry.
+      router.replace(window.location.pathname, { scroll: false });
 
       if (otherUserId) {
           const existingConvo = conversations.find(c => c.participantIds.includes(otherUserId));
@@ -254,7 +258,7 @@ export default function ChatWidget() {
     if (user && conversations !== null) {
       handleUrlTrigger();
     }
-  }, [user, firestore, conversations]);
+  }, [user, firestore, conversations, searchParams, router]);
 
   const handleSelectConversation = (id: string) => {
     setSelectedConversationId(id);
