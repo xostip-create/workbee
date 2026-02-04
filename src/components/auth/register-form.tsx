@@ -8,13 +8,14 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useAuth, useFirestore, setDocumentNonBlocking } from "@/firebase";
 import { Loader2 } from "lucide-react";
+import { Textarea } from "../ui/textarea";
 
 const formSchema = z.object({
   fullName: z.string().min(1, "Full name is required."),
@@ -23,6 +24,15 @@ const formSchema = z.object({
   role: z.enum(["worker", "customer"], {
     required_error: "You need to select a role.",
   }),
+  skills: z.string().optional(),
+}).refine(data => {
+  if (data.role === 'worker') {
+    return data.skills && data.skills.trim().length > 0;
+  }
+  return true;
+}, {
+  message: "Please list at least one skill.",
+  path: ["skills"],
 });
 
 export function RegisterForm() {
@@ -37,8 +47,11 @@ export function RegisterForm() {
       fullName: "",
       email: "",
       password: "",
+      skills: "",
     },
   });
+
+  const role = form.watch("role");
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -71,7 +84,7 @@ export function RegisterForm() {
             id: user.uid,
             availability: "Not specified",
             status: "Pending Approval",
-            skillCategoryIds: [],
+            skillCategoryIds: values.skills?.split(',').map(s => s.trim()).filter(Boolean) || [],
             userProfileId: user.uid,
             userAccountId: user.uid,
         }, { merge: true });
@@ -179,6 +192,27 @@ export function RegisterForm() {
             </FormItem>
           )}
         />
+        {role === 'worker' && (
+             <FormField
+                control={form.control}
+                name="skills"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Your Skills</FormLabel>
+                    <FormControl>
+                        <Textarea 
+                            {...field} 
+                            placeholder="e.g., Plumbing, Electrical, Painting"
+                        />
+                    </FormControl>
+                    <FormDescription>
+                        Enter skills separated by a comma. This is how customers will find you.
+                    </FormDescription>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+        )}
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Create Account
