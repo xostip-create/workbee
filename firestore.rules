@@ -78,10 +78,15 @@ service cloud.firestore {
     /**
      * Returns true if the requesting user is an Admin.
      * Admin status is determined by the existence of a document in the
-     * `/roles_admin` collection, identified by the user's UID.
+     * `/roles_admin` collection, identified by the user's UID OR if their
+     * userAccount document has the role of 'admin'. The latter is a fallback
+     * to prevent race conditions during sign-up.
      */
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/userAccounts/$(request.auth.uid)).data.role == 'admin'
+      );
     }
 
     /**
@@ -126,7 +131,10 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingDoc() && (isOwner(userId) || isAdmin()) && isImmutable('id');
+      allow update: if isExistingDoc() && (
+        (isOwner(userId) && isImmutable('id') && isImmutable('role')) ||
+        isAdmin()
+      );
       allow delete: if isExistingDoc() && isAdmin();
     }
 
