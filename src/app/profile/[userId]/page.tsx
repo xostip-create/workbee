@@ -19,6 +19,11 @@ export default function UserProfilePage() {
   const { user: currentUser, isUserLoading: isCurrentUserLoading } = useUser();
   const firestore = useFirestore();
 
+  // Check if current logged-in user is an approved admin
+  const adminRoleRef = useMemoFirebase(() => currentUser ? doc(firestore, 'roles_admin', currentUser.uid) : null, [firestore, currentUser]);
+  const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleRef);
+  const isAdmin = !!adminRoleDoc;
+
   const currentUserProfileRef = useMemoFirebase(() => currentUser ? doc(firestore, 'userProfiles', currentUser.uid) : null, [firestore, currentUser]);
   const { data: currentUserProfile, isLoading: isLoadingCurrentUserProfile } = useDoc<UserProfile>(currentUserProfileRef);
 
@@ -42,7 +47,7 @@ export default function UserProfilePage() {
   }, [currentUserProfile, userProfile]);
 
 
-  const isLoading = isCurrentUserLoading || isLoadingCurrentUserProfile || isLoadingAccount || isLoadingProfile || isLoadingWorker || isLoadingCustomer;
+  const isLoading = isCurrentUserLoading || isLoadingCurrentUserProfile || isLoadingAccount || isLoadingProfile || isLoadingWorker || isLoadingCustomer || isAdminRoleLoading;
 
   const renderContent = () => {
     if (isLoading) {
@@ -65,9 +70,7 @@ export default function UserProfilePage() {
     // Visibility rules for worker profiles
     if (userAccount.role === 'worker' && workerProfile?.status !== 'Approved') {
         const isOwner = currentUser?.uid === userId;
-        // In a real app, you would also fetch the current user's role to check for admin
-        const isAdmin = false; 
-
+        
         if (!isOwner && !isAdmin) {
              return (
                 <Card>
@@ -104,4 +107,5 @@ export default function UserProfilePage() {
     </div>
   );
 }
+
 

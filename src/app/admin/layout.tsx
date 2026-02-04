@@ -24,6 +24,9 @@ export default function AdminLayout({
   const userAccountRef = useMemoFirebase(() => user ? doc(firestore, 'userAccounts', user.uid) : null, [firestore, user]);
   const { data: userAccount, isLoading: isAccountLoading } = useDoc<UserAccount>(userAccountRef);
 
+  const adminRoleRef = useMemoFirebase(() => user ? doc(firestore, 'roles_admin', user.uid) : null, [firestore, user]);
+  const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleRef);
+
   useEffect(() => {
     // If auth is done loading and there's no user, redirect to login
     if (!isUserLoading && !user) {
@@ -31,7 +34,7 @@ export default function AdminLayout({
     }
   }, [isUserLoading, user, router]);
 
-  const isLoading = isUserLoading || isAccountLoading;
+  const isLoading = isUserLoading || isAccountLoading || isAdminRoleLoading;
 
   if (isLoading) {
     return (
@@ -41,14 +44,19 @@ export default function AdminLayout({
     );
   }
   
-  // After loading, if there's no account or the role is not admin, show access denied.
-  if (!userAccount || userAccount.role !== 'admin') {
+  // After loading, if the user's role is not admin OR they don't have an approved admin role doc, deny access.
+  if (!userAccount || userAccount.role !== 'admin' || !adminRoleDoc) {
       return (
         <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 p-4">
             <Card className="w-full max-w-md">
                 <CardHeader>
                     <CardTitle>Access Denied</CardTitle>
-                    <CardDescription>You do not have the required permissions to view this page. Please contact an administrator if you believe this is an error.</CardDescription>
+                    <CardDescription>
+                        {userAccount?.role === 'admin'
+                            ? "Your administrator account is pending approval."
+                            : "You do not have the required permissions to view this page. Please contact an administrator if you believe this is an error."
+                        }
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
@@ -58,7 +66,7 @@ export default function AdminLayout({
       )
   }
 
-  // If user is admin, render the layout
+  // If user is an approved admin, render the layout
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-muted/40">
